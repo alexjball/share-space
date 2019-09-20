@@ -1,0 +1,27 @@
+{
+  "name": "share-space",
+  "version": "1.0.0",
+  "description": "low-latency shared desktop",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "node server.js",
+    "client": "node start-client.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexjball/share-space.git"
+  },
+  "author": "Alex Ball",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/alexjball/share-space/issues"
+  },
+  "homepage": "https://github.com/alexjball/share-space#readme",
+  "devDependencies": {
+    "concurrently": "^4.1.2"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
