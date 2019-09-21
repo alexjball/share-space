@@ -1,6 +1,6 @@
 {
   "name": "share-space",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "low-latency shared desktop",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
