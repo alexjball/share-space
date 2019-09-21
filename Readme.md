@@ -1,3 +1,16 @@
+# Share Space
+
+Make sharing a computer less about the hardware and more about the people.
+
+Features:
+- Low-latency remote desktop viewing and control.
+- Configurable resolution and framerate, supporting 1080p30.
+- Audio support
+- Multiple concurrent viewers
+- Pass control between users
+
+# ===== Old =====
+
 # Work Items
 - Audio support: Add a null audio sink, set it to the default audio sink, and stream the monitor output
 - Quality: Run on an upgraded machine type: 1080p 30 fps video (and audio)
