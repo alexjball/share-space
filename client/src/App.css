@@ -1,16 +1,3 @@
 .App {
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.controls {
-  flex: initial;
-  height: 10%;
-  background-color: bisque;
-}
-
-.stream {
-  flex: auto;
-  background-color: tomato;
 }

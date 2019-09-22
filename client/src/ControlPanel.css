@@ -1,0 +1,26 @@
+.control-container {
+  position: absolute;
+  width: 100%;
+}
+
+.control-panel {
+  padding: 10px;
+  background-color: tomato;
+}
+
+.center {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-handle {
+  width: 20px;
+  height: 10px;
+  background-color: olive;
+}
+
+.hidden {
+  display: none;
+}
