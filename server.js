@@ -4,16 +4,8 @@ const app = express();
 
 app.set("port", process.env.PORT || 3001);
 
-app.get("/stream", (req, res) => {
-  const param = req.query.q;
-
-  if (!param) {
-    res.json({
-      error: "Missing required parameter `q`"
-    });
-  } else {
-    res.json({result: param})
-  }
+app.get("/connect", (req, res) => {
+  res.json({offer: Math.random()});
 });
 
 app.listen(app.get("port"), () => {

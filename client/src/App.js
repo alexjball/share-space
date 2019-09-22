@@ -21,7 +21,7 @@ export default class App extends Component {
   render() {
     return (
       <div className="App">
-        <ControlPanel connect={spaceUrl => this.setState({ spaceUrl })} />
+        <ControlPanel initiallyOpen={true} connect={spaceUrl => this.setState({ spaceUrl })} />
         <Room spaceUrl={this.state.spaceUrl} key={this.state.spaceUrl} />
       </div>
     );
