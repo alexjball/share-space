@@ -18,6 +18,8 @@ const app = express();
 app.use(bodyParser.json());
 app.set("port", process.env.PORT || 3001);
 
+app.use("/assets", express.static("assets"));
+
 app.get("/connect", (req, res) => {
   res.json({ offer: Math.random() });
 });

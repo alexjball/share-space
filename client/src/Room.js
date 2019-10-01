@@ -45,12 +45,8 @@ export default class Room extends Component {
   }
 
   beforeAnswer = async peerConnection => {
-    const localStream = await window.navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: true
-    });
-
-    this.localVideoRef.current.srcObject = localStream;
+    this.localVideoRef.current.play();
+    const localStream = this.localVideoRef.current.captureStream();
     localStream
       .getTracks()
       .forEach(track => peerConnection.addTrack(track, localStream));
@@ -77,7 +73,7 @@ export default class Room extends Component {
     peerConnection.close = args => {
       this.remoteVideoRef.current.srcObject = null;
 
-      this.localVideoRef.current.srcObject = null;
+      this.localVideoRef.current.pause();
 
       localStream.getTracks().forEach(track => track.stop());
 
@@ -91,6 +87,7 @@ export default class Room extends Component {
       this.peerConnection = await this.connectionClient.createConnection({
         beforeAnswer: this.beforeAnswer
       });
+      window.peerConnection = this.peerConnection;
     } catch (error) {
       throw error;
     }
@@ -114,10 +111,11 @@ export default class Room extends Component {
         </div>
         <div className="video-container">
           <video
-            autoPlay={true}
+            loop={true}
             muted={true}
             ref={this.localVideoRef}
             className="video"
+            src="/assets/BigBuckBunny.mp4"
           />
           <video
             autoPlay={true}

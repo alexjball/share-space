@@ -9,6 +9,12 @@ Features:
 - Multiple concurrent viewers
 - Pass control between users
 
+# TODO
+- Implement a stream using a MediaSource and WebSocket.
+- Test sharing a MediaStreamTrack between multiple PeerConnections.
+- Test configuring a single-codec offer.
+- Is it possible to implement my own MediaStreamTrack?
+
 # ===== Old =====
 
 # Work Items
