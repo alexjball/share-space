@@ -32,7 +32,7 @@ const connectionManager = WebRtcConnectionManager.create({beforeOffer});
 mount(app, connectionManager, "/rtc");
 
 const width = 640;
-const height = 480;
+const height = 360;
 
 function beforeOffer(peerConnection) {
   const source = new RTCVideoSource();

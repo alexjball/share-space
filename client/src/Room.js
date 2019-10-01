@@ -115,7 +115,7 @@ export default class Room extends Component {
             muted={true}
             ref={this.localVideoRef}
             className="video"
-            src="/assets/BigBuckBunny.mp4"
+            src="/assets/earth.mp4"
           />
           <video
             autoPlay={true}
