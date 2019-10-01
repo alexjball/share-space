@@ -16,7 +16,7 @@ export default class WebsocketRoom extends Component {
   }
 
   async connect() {
-    const response = await fetch(`${this.props.spaceUrl}/connect`),
+    const response = await fetch(`${this.props.spaceUrl}/websocket/connect`),
       body = await response.json();
 
     if (response.ok) {
