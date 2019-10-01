@@ -1,7 +1,8 @@
 import React, { Component } from "react";
 import "./App.css";
 import ControlPanel from "./ControlPanel.js";
-import Room from "./Room.js";
+import WebsocketRoom from "./WebsocketRoom.js";
+import WebRtcRoom from "./WebRtcRoom.js";
 
 /**
  * Full-screen root component of the app.
@@ -21,8 +22,23 @@ export default class App extends Component {
   render() {
     return (
       <div className="App">
-        <ControlPanel initiallyOpen={true} connect={spaceUrl => this.setState({ spaceUrl })} />
-        <Room spaceUrl={this.state.spaceUrl} key={this.state.spaceUrl} />
+        <ControlPanel
+          initiallyOpen={true}
+          connect={(spaceUrl, roomType) =>
+            this.setState({ spaceUrl, roomType })
+          }
+        />
+        {this.state.roomType === "WebRTC" ? (
+          <WebRtcRoom
+            spaceUrl={this.state.spaceUrl}
+            key={this.state.spaceUrl}
+          />
+        ) : (
+          <WebsocketRoom
+            spaceUrl={this.state.spaceUrl}
+            key={this.state.spaceUrl}
+          />
+        )}
       </div>
     );
   }

@@ -21,12 +21,33 @@ export default class ControlPanel extends Component {
           className={`control-panel center ${this.state.open ? "" : "hidden"}`}
         >
           <input
+            className="item"
             type="text"
             value={this.state.spaceUrl}
             onChange={e => this.setState({ spaceUrl: e.target.value })}
-            style={{ marginRight: "10px" }}
           />
-          <button onClick={() => connect(this.state.spaceUrl)}>connect</button>
+          <button
+            className="item"
+            onClick={() =>
+              connect(
+                this.state.spaceUrl,
+                "WebRTC"
+              )
+            }
+          >
+            connect WebRTC
+          </button>
+          <button
+            className="item"
+            onClick={() =>
+              connect(
+                this.state.spaceUrl,
+                "Websocket"
+              )
+            }
+          >
+            connect Websocket
+          </button>
         </div>
         <div className="center">
           <div

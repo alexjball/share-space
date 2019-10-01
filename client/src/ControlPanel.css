@@ -24,3 +24,7 @@
 .hidden {
   display: none;
 }
+
+.item {
+  margin-right: 10px;
+}
