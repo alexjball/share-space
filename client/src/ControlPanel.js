@@ -9,7 +9,7 @@ export default class ControlPanel extends Component {
     super(props);
     this.state = {
       open: !!props.initiallyOpen,
-      spaceUrl: "http://localhost:3000"
+      spaceUrl: "localhost:3000"
     };
   }
 

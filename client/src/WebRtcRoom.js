@@ -108,7 +108,7 @@ export default class WebRtcRoom extends Component {
     // open webRTC connection
     if (this.props.spaceUrl) {
       this.connectionClient = new ConnectionClient({
-        host: this.props.spaceUrl,
+        host: `http://${this.props.spaceUrl}`,
         prefix: "/rtc"
       });
     }

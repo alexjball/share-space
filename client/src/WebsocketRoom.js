@@ -16,41 +16,41 @@ export default class WebsocketRoom extends Component {
   }
 
   async connect() {
-    const response = await fetch(`${this.props.spaceUrl}/websocket/connect`),
-      body = await response.json();
+    const ws = (this.ws = new WebSocket(
+      `ws://${this.props.spaceUrl}/websocket`
+    ));
 
-    if (response.ok) {
-      return `Connected, offer: ${body.offer}`;
-    }
-    return `Failed to connect, ${response.status}`;
+    ws.onopen = () => {
+      this.setState({ status: "Connected" });
+    };
+    ws.onerror = event => {
+      this.setState({ status: `Error: ${event}` });
+    };
+    ws.onclose = event => {
+      this.setState({ status: "Closed" });
+    };
+    ws.onmessage = event => {
+      this.setState({ messageData: event.data });
+    };
   }
 
   componentDidMount() {
-    // open websocket connection
     if (this.props.spaceUrl) {
-      this.connect()
-        .then(status => this.setState({ status }))
-        .catch(reason => this.setState({ status: String(reason) }));
+      this.connect();
     }
   }
 
   componentWillUnmount() {
-    // close websocket connection
+    if (this.props.spaceUrl) {
+      this.ws.close();
+    }
   }
 
   render() {
     return (
       <div className="room">
-        <div>
-          {`spaceUrl: ${this.props.spaceUrl} status: ${this.state.status}`}
-        </div>
-        <div className="video-container">
-          <video
-            muted={true}
-            ref={this.videoRef}
-            className="video"
-          />
-        </div>
+        <div>{`spaceUrl: ${this.props.spaceUrl}`}</div>
+        <div>{`latest message data: ${this.state.messageData}`}</div>
       </div>
     );
   }
