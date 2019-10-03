@@ -1,5 +1,5 @@
 const initWebRtc = require("./webrtc-server");
-const initWebsocket = require("./websocket-server");
+const VideoServer = require("./VideoServer");
 const express = require("express");
 
 const app = express();
@@ -13,5 +13,17 @@ const server = app.listen(app.get("port"), () => {
   console.log(`Find the server at: http://localhost:${app.get("port")}/`); // eslint-disable-line no-console
 });
 
+server.on("upgrade", (request, socket, head) => {
+  if (videoServer.shouldHandle(request)) {
+    videoServer.handleUpgrade(request, socket, head);
+  } else {
+    socket.destroy();
+  }
+});
+
+const videoServer = new VideoServer({
+  streamingPath: "/stream",
+  sinkPath: "/tmp/share-space-video-sink.sock"
+});
+videoServer.start();
 initWebRtc(app, "/rtc");
-initWebsocket(server, "/websocket");

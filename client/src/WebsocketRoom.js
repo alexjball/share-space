@@ -16,9 +16,7 @@ export default class WebsocketRoom extends Component {
   }
 
   async connect() {
-    const ws = (this.ws = new WebSocket(
-      `ws://${this.props.spaceUrl}/websocket`
-    ));
+    const ws = (this.ws = new WebSocket(`ws://${this.props.spaceUrl}/stream`));
 
     ws.onopen = () => {
       this.setState({ status: "Connected" });
@@ -30,7 +28,12 @@ export default class WebsocketRoom extends Component {
       this.setState({ status: "Closed" });
     };
     ws.onmessage = event => {
-      this.setState({ messageData: event.data });
+      event.data.text().then(msg => {
+        this.setState({
+          messageData: msg,
+          lastMessageTime: performance.now()
+        });
+      });
     };
   }
 
@@ -50,7 +53,9 @@ export default class WebsocketRoom extends Component {
     return (
       <div className="room">
         <div>{`spaceUrl: ${this.props.spaceUrl}`}</div>
+        <div>{`status: ${this.state.status}`}</div>
         <div>{`latest message data: ${this.state.messageData}`}</div>
+        <div>{`latest message time: ${this.state.lastMessageTime}`}</div>
       </div>
     );
   }
