@@ -13,10 +13,13 @@ export default class WebsocketRoom extends Component {
     super(props);
     this.state = { status: "Waiting to connect" };
     this.videoRef = React.createRef();
+    // TODO: decide on a well-supported MIME-type/ffmpeg command pair.
+    this.videoSource = new MediaSource();
   }
 
   async connect() {
     const ws = (this.ws = new WebSocket(`ws://${this.props.spaceUrl}/stream`));
+    ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
       this.setState({ status: "Connected" });
@@ -28,11 +31,9 @@ export default class WebsocketRoom extends Component {
       this.setState({ status: "Closed" });
     };
     ws.onmessage = event => {
-      event.data.text().then(msg => {
-        this.setState({
-          messageData: msg,
-          lastMessageTime: performance.now()
-        });
+      this.setState({
+        messageData: event.data,
+        lastMessageTime: performance.now()
       });
     };
   }

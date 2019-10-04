@@ -6,6 +6,7 @@ class VideoServer {
   constructor({ streamingPath, sinkPath }) {
     this.streamingPath = streamingPath;
     this.sinkPath = sinkPath;
+    this.websocketStreams = new Map();
   }
 
   start() {
@@ -24,7 +25,10 @@ class VideoServer {
       if (this.liveSocket) {
         this._connect(this.liveSocket, ws);
       }
-      ws.on("close", () => console.log("closed streaming connection"));
+      ws.on("close", () => {
+        console.log("closed streaming connection");
+        this.websocketStreams.delete(ws);
+      });
     });
 
     this.sink = net.createServer(socket => {
@@ -49,8 +53,15 @@ class VideoServer {
   }
 
   _connect(socket, ws) {
-    // TODO: clean up websocket stream while keeping websocket open.
-    socket.pipe(WebSocket.createWebSocketStream(ws), {end: false});
+    if (!this.websocketStreams.has(ws)) {
+      this.websocketStreams.set(ws, WebSocket.createWebSocketStream(ws));
+    }
+    // The socket pipes binary data to the websocket stream, which is automatically closed
+    // when the underlying websocket closes.
+    socket.pipe(
+      this.websocketStreams.get(ws),
+      { end: false }
+    );
   }
 
   shouldHandle(req) {
