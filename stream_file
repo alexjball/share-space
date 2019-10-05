@@ -1,0 +1,6 @@
+ffmpeg -i $1 \
+    -c:v libx264 -profile:v baseline -level 3.0 \
+    -preset ultrafast -tune zerolatency \
+    -movflags frag_keyframe+empty_moov \
+    -c:a aac -profile:a aac_low \
+    -f mp4 $2

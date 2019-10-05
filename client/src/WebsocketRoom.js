@@ -1,6 +1,8 @@
 import React, { Component } from "react";
 import "./Room.css";
 
+const mimeType = 'video/mp4; codecs="avc1.42001e, mp4a.67"';
+
 /**
  * The main interface to spaces, using a websocket.
  *
@@ -13,8 +15,10 @@ export default class WebsocketRoom extends Component {
     super(props);
     this.state = { status: "Waiting to connect" };
     this.videoRef = React.createRef();
-    // TODO: decide on a well-supported MIME-type/ffmpeg command pair.
-    this.videoSource = new MediaSource();
+
+    if (!MediaSource.isTypeSupported(mimeType)) {
+      throw Error(`MIME type ${mimeType} not supported`);
+    }
   }
 
   async connect() {
@@ -31,11 +35,20 @@ export default class WebsocketRoom extends Component {
       this.setState({ status: "Closed" });
     };
     ws.onmessage = event => {
+      if (this.sourceBuffer) {
+        this.sourceBuffer.appendBuffer(event.data);
+      }
       this.setState({
-        messageData: event.data,
         lastMessageTime: performance.now()
       });
     };
+
+    const videoSource = new MediaSource();
+    videoSource.addEventListener("sourceopen", () => {
+      this.sourceBuffer = videoSource.addSourceBuffer(mimeType);
+    });
+
+    this.videoRef.current.src = URL.createObjectURL(videoSource);
   }
 
   componentDidMount() {
@@ -55,8 +68,8 @@ export default class WebsocketRoom extends Component {
       <div className="room">
         <div>{`spaceUrl: ${this.props.spaceUrl}`}</div>
         <div>{`status: ${this.state.status}`}</div>
-        <div>{`latest message data: ${this.state.messageData}`}</div>
         <div>{`latest message time: ${this.state.lastMessageTime}`}</div>
+        <video autoPlay={false} ref={this.videoRef} className="video" />
       </div>
     );
   }
