@@ -1,0 +1,7 @@
+#ffmpeg -v info -f x11grab -video_size 640x360 -framerate 5 -i :0 \
+ffmpeg -v info -i $1 \
+    -c:v libvpx-vp9 \
+    -live true \
+    -deadline realtime -crf 30 -b:v 500k \
+    -f webm $2
+    #-c:a libvorbis \
