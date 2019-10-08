@@ -23,11 +23,14 @@ class VideoServer {
     this.wss.on("connection", ws => {
       console.log("new streaming connection");
       if (this.liveSocket) {
-        this._connect(this.liveSocket, ws);
+        this.startStreaming(ws);
       }
       ws.on("close", () => {
         console.log("closed streaming connection");
-        this.websocketStreams.delete(ws);
+        const clientStream = this.websocketStreams.delete(ws);
+        if (clientStream && this.liveSocket) {
+          this.liveSocket.unpipe(clientStream);
+        }
       });
     });
 
@@ -39,7 +42,7 @@ class VideoServer {
         this.liveSocket = null;
       });
       // socket.on("data", data => console.log(`sink data ${data}`));
-      this.wss.clients.forEach(ws => this._connect(socket, ws));
+      this.wss.clients.forEach(ws => this.startStreaming(ws));
     });
 
     this.sink.on("error", err => console.log(`sink server error ${err}`));
@@ -52,13 +55,18 @@ class VideoServer {
     this.sink.listen(this.sinkPath);
   }
 
-  _connect(socket, ws) {
-    if (!this.websocketStreams.has(ws)) {
-      this.websocketStreams.set(ws, WebSocket.createWebSocketStream(ws));
+  startStreaming(ws) {
+    if (!this.liveSocket) {
+      throw Error("No stream available");
     }
-    // The socket pipes binary data to the websocket stream, which is automatically closed
-    // when the underlying websocket closes.
-    socket.pipe(
+    if (!this.websocketStreams.has(ws)) {
+      const clientStream = WebSocket.createWebSocketStream(ws);
+      clientStream.on("error", err =>
+        console.error(`Error in client stream: ${err}`)
+      );
+      this.websocketStreams.set(ws, clientStream);
+    }
+    this.liveSocket.pipe(
       this.websocketStreams.get(ws),
       { end: false }
     );

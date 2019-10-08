@@ -1,7 +1,24 @@
-#ffmpeg -v info -f x11grab -video_size 640x360 -framerate 5 -i :0 \
-ffmpeg -v info -i $1 \
+#!/bin/sh
+
+# ffmpeg -v info -i $1 \
+ffmpeg -v info -f x11grab -probesize 32 -video_size 1280x720 -framerate 30 -i :0 \
     -c:v libvpx-vp9 \
+    -quality realtime \
+    -speed 8 \
+    -tile-columns 4 \
+    -frame-parallel 1 \
+    -threads 8 \
+    -static-thresh 0 \
+    -max-intra-rate 300 \
+    -row-mt 1 \
+    -error-resilient 1 \
+    -lag-in-frames 0 \
+    -qmin 4 -qmax 48 \
+    -pix_fmt yuv420p \
+    -crf 30 \
+    -b:v 500k \
+    -f webm \
     -live true \
-    -deadline realtime -crf 30 -b:v 500k \
-    -f webm $2
-    #-c:a libvorbis \
+    $2
+
+    # -c:a libopus -b:a 50k \

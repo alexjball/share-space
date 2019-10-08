@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import "./Room.css";
 
 // const mimeType = 'video/mp4; codecs="avc1.42001e, mp4a.67"';
-const mimeType = 'video/webm; codecs="vp9"';//,vorbis"';
+const mimeType = 'video/webm; codecs="vp9"'; //,opus"';
 
 /**
  * The main interface to spaces, using a websocket.
@@ -16,6 +16,7 @@ export default class WebsocketRoom extends Component {
     super(props);
     this.state = { status: "Waiting to connect" };
     this.videoRef = React.createRef();
+    this.pendingBuffers = [];
 
     if (!MediaSource.isTypeSupported(mimeType)) {
       throw Error(`MIME type ${mimeType} not supported`);
@@ -37,25 +38,9 @@ export default class WebsocketRoom extends Component {
     };
     ws.onmessage = event => {
       if (this.sourceBuffer) {
-        const tr = this.sourceBuffer.buffered;
-        const printTr = (tr) => {
-          if (tr.length) {
-            return `${tr.start(0)} ${tr.end(0)}`;
-          }
-          return "empty TimeRanges";
-        };
-        if (this.videoRef.current.error) {
-          console.log(this.videoRef.current.error);
-        }
-        if (tr.length && this.videoRef.current) {
-          console.log(printTr(tr), this.videoRef.current.currentTime, printTr(this.videoRef.current.seekable));
-        }
-        // console.log(this.sourceBuffer.buffered.start(0), this.sourceBuffer.buffered.end(0));
-        if (this.sourceBuffer.updating) {
-          console.warn("sourceBuffer is updating, aborting");
-          this.sourceBuffer.abort();
-        }
-        this.sourceBuffer.appendBuffer(event.data);
+        this.logPlayback(this.videoRef.current);
+        this.pendingBuffers.push(event.data);
+        this.tryAppendBuffer();
       }
       this.setState({
         lastMessageTime: performance.now()
@@ -65,10 +50,37 @@ export default class WebsocketRoom extends Component {
     const videoSource = (this.videoSource = new MediaSource());
     videoSource.addEventListener("sourceopen", () => {
       this.sourceBuffer = videoSource.addSourceBuffer(mimeType);
+      this.sourceBuffer.onupdate = this.tryAppendBuffer;
     });
 
     this.videoRef.current.src = URL.createObjectURL(videoSource);
   }
+
+  logPlayback(video) {
+    if (video.error) {
+      console.error(this.videoRef.current.error);
+    }
+    console.log(
+      `Current playback time: ${
+        video.currentTime
+      }. Available seek ahead: ${(video.seekable.length
+        ? video.seekable.end(0)
+        : 0) - video.currentTime}, # pending buffers: ${
+        this.pendingBuffers.length
+      }`
+    );
+  }
+
+  tryAppendBuffer = () => {
+    if (this.sourceBuffer.updating) {
+      console.warn("sourcebuffer is updating, not appending");
+    } else {
+      const buffer = this.pendingBuffers.shift();
+      if (buffer) {
+        this.sourceBuffer.appendBuffer(buffer);
+      }
+    }
+  };
 
   componentDidMount() {
     if (this.props.spaceUrl) {
