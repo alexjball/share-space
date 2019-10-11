@@ -1,0 +1,55 @@
+#!/bin/bash
+
+IMAGE_NAME=ffmpeg-build
+CONTAINER_NAME=ffmpeg
+DOCKERFILE_URL='https://raw.githubusercontent.com/jrottenberg/ffmpeg/master/docker-images/4.2/ubuntu/Dockerfile'
+HOST_MOUNT=$(dirname $(dirname $(realpath $0)))
+WORKDIR=/tmp/share-space
+
+build() {
+	docker build \
+		--target build \
+		-t $IMAGE_NAME \
+		--build-arg MAKEFLAGS="-j$(($(nproc) + 1))" \
+		$DOCKERFILE_URL
+}
+
+start() {
+	docker run \
+		-itd \
+		--name $CONTAINER_NAME \
+		-v $HOST_MOUNT:$WORKDIR \
+		-e LD_LIBRARY_PATH=/usr/local/lib \
+		$IMAGE_NAME bash \
+		|| docker start $CONTAINER_NAME
+}
+
+attach() {
+	docker exec -it $CONTAINER_NAME bash
+}
+
+remove() {
+	docker container stop $CONTAINER_NAME && docker container rm $CONTAINER_NAME
+}
+
+prog_name=$0
+cmd=$1
+shift || true
+
+case "$cmd" in
+	build)
+		build $@
+		;;
+	start)
+		start $@
+		;;
+	attach)
+		attach $@
+		;;
+	remove)
+		remove $@
+		;;
+	*)
+		echo "Usage: $prog_name {build|start|attach|remove}"
+		exit 1
+esac
