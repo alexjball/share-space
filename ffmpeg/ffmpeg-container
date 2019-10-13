@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# Script for managing an FFmpeg build environment packaged in a Docker container.
+# This wraps the popular ffmpeg container: https://hub.docker.com/r/jrottenberg/ffmpeg
 
 IMAGE_NAME=ffmpeg-build
 CONTAINER_NAME=ffmpeg
@@ -15,13 +18,17 @@ build() {
 }
 
 start() {
+	# FFmpeg is configured to install to /opt/ffmpeg. The Dockerfile then copies libs and binaries to /usr/local.
+	# In order to use pkg-config to build against the libraries, we need to use the .pc files in 
+	# /opt/ffmpeg/lib/pkgconfig, which point to the libraries in /opt/ffmpeg, not /usr/local. So point everything at
+	# /opt/ffmpeg to make pkg-config work, even though there are ffmpeg libs and binaries in /usr/local.
 	docker run \
 		-itd \
 		--name $CONTAINER_NAME \
 		-v $HOST_MOUNT:$WORKDIR \
-		-e LD_LIBRARY_PATH=/usr/local/lib \
-		$IMAGE_NAME bash \
-		|| docker start $CONTAINER_NAME
+		-e LD_LIBRARY_PATH=/opt/ffmpeg/lib \
+		-e PKG_CONFIG_PATH=/opt/ffmpeg/lib/pkgconfig \
+		$IMAGE_NAME bash
 }
 
 attach() {
