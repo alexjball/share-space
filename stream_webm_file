@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# ffmpeg -v info -i $1 \
-ffmpeg -v info -f x11grab -probesize 32 -video_size 1280x720 -framerate 30 -i :0 \
+# ffmpeg -v info -f x11grab -probesize 32 -video_size 1280x720 -framerate 30 -i :0 \
+ffmpeg -v info -i $1 \
     -c:v libvpx-vp9 \
     -quality realtime \
     -speed 8 \
@@ -17,8 +17,15 @@ ffmpeg -v info -f x11grab -probesize 32 -video_size 1280x720 -framerate 30 -i :0
     -pix_fmt yuv420p \
     -crf 30 \
     -b:v 500k \
-    -f webm \
+    -f webm_chunk \
     -live true \
-    $2
+    -header tmp.hdr \
+    -map 0:0 \
+    tmp_%d.chk
+
+    # -f webm \
+    # -live true \
+    # $2
+
 
     # -c:a libopus -b:a 50k \

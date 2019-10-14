@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import "./Room.css";
 
 // const mimeType = 'video/mp4; codecs="avc1.42001e, mp4a.67"';
-const mimeType = 'video/webm; codecs="vp9"'; //,opus"';
+const mimeType = 'video/webm; codecs="vp9,opus"';
 
 /**
  * The main interface to spaces, using a websocket.

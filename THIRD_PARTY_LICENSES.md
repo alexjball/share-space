@@ -26,3 +26,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # node-webrtc-examples
 WebRTC connection is based on the `video-compositing` example.
 https://github.com/node-webrtc/node-webrtc-examples
+
+# FFmpeg
+
+# https://github.com/jrottenberg/ffmpeg
