@@ -1,6 +1,6 @@
 # Share Space
 
-Make sharing a computer less about the hardware and more about the people.
+Make it easy to share a computer remotely with others. Spend less time configuring hardware and more time with people.
 
 Features:
 - Low-latency remote desktop viewing and control.
