@@ -566,8 +566,8 @@ int main(int argc, char **argv)
     AVDictionary *opt = NULL;
     int i;
 
-    if (argc < 2) {
-        printf("usage: %s output_file\n"
+    if (argc < 3) {
+        printf("usage: %s output_file info_file\n"
                "API example program to output a media file with libavformat.\n"
                "This program generates a synthetic audio and video stream, encodes and\n"
                "muxes them into a file named output_file.\n"
@@ -578,7 +578,7 @@ int main(int argc, char **argv)
     }
 
     filename = argv[1];
-    for (i = 2; i+1 < argc; i+=2) {
+    for (i = 3; i+1 < argc; i+=2) {
         if (!strcmp(argv[i], "-flags") || !strcmp(argv[i], "-fflags"))
             av_dict_set(&opt, argv[i]+1, argv[i+1], 0);
     }
@@ -589,7 +589,8 @@ int main(int argc, char **argv)
         return 1;
 
     // Set muxer header option.
-    av_opt_set(oc->priv_data, "header", "test.hdr", 0);
+    av_opt_set(oc->priv_data, "stream_url", filename, 0);
+    av_opt_set(oc->priv_data, "info_url", argv[2], 0);
 
     fmt = oc->oformat;
 
@@ -600,11 +601,11 @@ int main(int argc, char **argv)
         have_video = 1;
         encode_video = 1;
     }
-    // if (fmt->audio_codec != AV_CODEC_ID_NONE) {
-    //     add_stream(&audio_st, oc, &audio_codec, fmt->audio_codec);
-    //     have_audio = 1;
-    //     encode_audio = 1;
-    // }
+    if (fmt->audio_codec != AV_CODEC_ID_NONE) {
+        add_stream(&audio_st, oc, &audio_codec, fmt->audio_codec);
+        have_audio = 1;
+        encode_audio = 1;
+    }
 
     /* Now that all the parameters are set, we can open the audio and
      * video codecs and allocate the necessary encode buffers. */

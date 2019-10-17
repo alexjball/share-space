@@ -56,56 +56,45 @@
 // #include "libavutil/time_internal.h"
 #include "libavutil/timestamp.h"
 
-#define MAX_FILENAME_SIZE 1024
-
 typedef struct WebMStreamingChunkContext
 {
     const AVClass *class;
     char *stream_url;
     char *info_url;
-    int64_t prev_pts;
     ff_const59 AVOutputFormat *oformat;
     AVFormatContext *avf;
     AVIOContext *info_io;
-    bool open_media_segment;
+    int open_media_segment;
 } WebMStreamingChunkContext;
 
 enum WebMStreamEvent
 {
     WEBM_STREAM_EVENT_INITIALIZATION_SEGMENT_START = 1,
     WEBM_STREAM_EVENT_MEDIA_SEGMENT_START = 2
-}
+};
 
 // TODO: make sure this is written consistently to info_stream
 // event: 1 byte
 // offset: 8 bytes, js can only handle 53 bits.
 typedef struct WebMStreamInfo
 {
-    WebMStreamInfo event;
+    enum WebMStreamEvent event;
     int64_t offset;
 } WebMStreamInfo;
 
-// typedef struct WebMChunkContext {
-//     const AVClass *class;
-//     int chunk_start_index;
-//     char *header_filename;
-//     int chunk_duration;
-//     int chunk_index;
-//     char *http_method;
-//     uint64_t duration_written;
-//     int64_t prev_pts;
-//     ff_const59 AVOutputFormat *oformat;
-//     AVFormatContext *avf;
-// } WebMChunkContext;
+static void write_info(AVIOContext *info_io, WebMStreamInfo *info)
+{
+    char msg[1024];
+    sprintf(msg, "{ \"event\": %d, \"offset\": %ld }\n", info->event, info->offset);
+    avio_put_str(info_io, msg);
 
-static void write_info(AVIOContext *info_io, WebMStreamInfo *info) {
-    avio_write(info_io, info, sizeof(WebMStreamInfo));
+    // avio_write(info_io, info, sizeof(WebMStreamInfo));
     avio_flush(info_io);
 }
 
 static int chunk_mux_init(AVFormatContext *s)
 {
-    WebMChunkContext *wc = s->priv_data;
+    WebMStreamingChunkContext *wc = s->priv_data;
     AVFormatContext *oc;
     int ret;
 
@@ -122,8 +111,6 @@ static int chunk_mux_init(AVFormatContext *s)
     // Set WebM format options
     *(const AVClass **)oc->priv_data = oc->oformat->priv_class;
     av_opt_set_defaults(oc->priv_data);
-    av_opt_set_int(oc->priv_data, "dash", 1, 0);
-    // av_opt_set_int(oc->priv_data, "cluster_time_limit", wc->chunk_duration, 0);
     av_opt_set_int(oc->priv_data, "live", 1, 0);
 
     // Expose top-level streams to WebM muxer
@@ -146,7 +133,6 @@ static int webm_chunk_write_header(AVFormatContext *s)
     wc->oformat = av_guess_format("webm", s->url, "video/webm");
     if (!wc->oformat)
         return AVERROR_MUXER_NOT_FOUND;
-    wc->prev_pts = AV_NOPTS_VALUE;
 
     ret = chunk_mux_init(s);
     if (ret < 0)
@@ -168,7 +154,7 @@ static int webm_chunk_write_header(AVFormatContext *s)
         return ret;
 
     // Write initialization segment information
-    printf("sizeof(WebMStreamInfo) %d\n", sizeof(WebMStreamInfo));
+    printf("sizeof(WebMStreamInfo) %ld\n", sizeof(WebMStreamInfo));
     WebMStreamInfo initialization_segment_info = {WEBM_STREAM_EVENT_INITIALIZATION_SEGMENT_START, 0};
     write_info(wc->info_io, &initialization_segment_info);
 
@@ -187,10 +173,10 @@ static int webm_chunk_write_header(AVFormatContext *s)
 
 static void media_segment_start(AVFormatContext *s)
 {
-    WebMChunkStreamingContext *wc = s->priv_data;
+    WebMStreamingChunkContext *wc = s->priv_data;
     AVFormatContext *oc = wc->avf;
 
-    wc->open_media_segment = true;
+    wc->open_media_segment = 1;
 
     WebMStreamInfo media_segment_info =
         {WEBM_STREAM_EVENT_MEDIA_SEGMENT_START, avio_tell(oc->pb)};
@@ -200,8 +186,10 @@ static void media_segment_start(AVFormatContext *s)
 
 static void media_segment_end(AVFormatContext *s, int flush)
 {
-    WebMChunkContext *wc = s->priv_data;
+    WebMStreamingChunkContext *wc = s->priv_data;
     AVFormatContext *oc = wc->avf;
+
+    wc->open_media_segment = 0;
 
     if (flush)
         // Flush the cluster in WebM muxer.
@@ -210,26 +198,15 @@ static void media_segment_end(AVFormatContext *s, int flush)
 
 static int webm_chunk_write_packet(AVFormatContext *s, AVPacket *pkt)
 {
-    WebMChunkContext *wc = s->priv_data;
+    WebMStreamingChunkContext *wc = s->priv_data;
     AVFormatContext *oc = wc->avf;
     AVStream *st = s->streams[pkt->stream_index];
     int ret;
-
-    // TODO: No idea what this does
-    if (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
-    {
-        if (wc->prev_pts != AV_NOPTS_VALUE)
-            wc->duration_written += av_rescale_q(pkt->pts - wc->prev_pts,
-                                                 st->time_base,
-                                                 (AVRational){1, 1000});
-        wc->prev_pts = pkt->pts;
-    }
 
     // On video keyframes, flush the WebM muxer, which triggers the end of the
     // current cluster. Each cluster corresponds to a media segment ("chunk").
     if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && (pkt->flags & AV_PKT_FLAG_KEY))
     {
-        wc->duration_written = 0;
         if (wc->open_media_segment)
         {
             media_segment_end(s, 1);
@@ -244,29 +221,27 @@ static int webm_chunk_write_packet(AVFormatContext *s, AVPacket *pkt)
 
 static int webm_chunk_write_trailer(AVFormatContext *s)
 {
-    WebMChunkContext *wc = s->priv_data;
+    WebMStreamingChunkContext *wc = s->priv_data;
     AVFormatContext *oc = wc->avf;
     int ret;
 
-    // TODO: update
-    if (!oc->pb)
+    if (!wc->open_media_segment)
     {
-        ret = media_segment_start(s);
-        if (ret < 0)
-            goto fail;
+        media_segment_start(s);
     }
-    oc->oformat->write_trailer(oc);
-    ret = media_segment_end(s, 0);
-fail:
-    // TODO: check that this always works
+    ret = oc->oformat->write_trailer(oc);
+    media_segment_end(s, 0);
+
+    // Clean up
     ff_format_io_close(s, &oc->pb);
+    ff_format_io_close(s, &wc->info_io);
     oc->streams = NULL;
     oc->nb_streams = 0;
     avformat_free_context(oc);
+
     return ret;
 }
 
-// TODO: How tf to make this accept options for WebM container? Something in docs about child entities with AVOptions.
 #define OFFSET(x) offsetof(WebMStreamingChunkContext, x)
 static const AVOption options[] = {
     {"stream_url", "output url for WebM media stream", OFFSET(stream_url), AV_OPT_TYPE_STRING, {0}, 0, 0, AV_OPT_FLAG_ENCODING_PARAM},
