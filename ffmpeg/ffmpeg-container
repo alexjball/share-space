@@ -9,6 +9,11 @@ DOCKERFILE_URL='https://raw.githubusercontent.com/jrottenberg/ffmpeg/master/dock
 HOST_MOUNT=$(dirname $(dirname $(realpath $0)))
 WORKDIR=/tmp/share-space
 
+# Docker will create this if it doesn't exist, and the room server can't
+# grab it. So start the room server first.
+# TODO: fix.
+VIDEO_SINK_SOCKET=/tmp/share-space-video-sink.sock
+
 build() {
 	docker build \
 		--target build \
@@ -26,6 +31,7 @@ start() {
 		-itd \
 		--name $CONTAINER_NAME \
 		-v $HOST_MOUNT:$WORKDIR \
+		-v $VIDEO_SINK_SOCKET:$VIDEO_SINK_SOCKET \
 		-e LD_LIBRARY_PATH=/opt/ffmpeg/lib \
 		-e PKG_CONFIG_PATH=/opt/ffmpeg/lib/pkgconfig \
 		$IMAGE_NAME bash
