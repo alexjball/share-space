@@ -19,9 +19,23 @@
  */
 
 /**
- * @file WebM Chunk Muxer
- * The chunk muxer enables writing WebM Live chunks where there is a header
- * chunk, followed by data chunks where each Cluster is written out as a Chunk.
+ * @file WebM Streaming Chunk Muxer
+ * The streaming chunk muxer supports writing a streamable webm container to one output
+ * and metadata about the chunks to another output. It is based on the webm chunk muxer,
+ * which itself uses the Matroska/WebM muxer to handle the format.
+ * 
+ * The stream starts with a header/initialization segment, then chunk/media segments. 
+ * Metadata is written at the start of each segment and specifies {type, offset, wall_time},
+ * where type is in {INITIALIZATION, MEDIA}, offset identifies the first octet of the segment
+ * relative to the start of the stream, and wall_time is the wall time when the packet is passed
+ * to the muxer. Consumers can use this to identify segment boundaries and monitor end-to-end
+ * latency.
+ * 
+ * This approach allows lower latency than file-oriented chunks. Files are written when the chunk
+ * is complete, whereas the stream can be forwarded to endpoints while the encoder is still 
+ * generating part of the chunk.
+ * 
+ * Packets are written directly to the output stream. The metadata consists of a simple
  */
 
 #include <float.h>
@@ -44,18 +58,38 @@
 
 #define MAX_FILENAME_SIZE 1024
 
-typedef struct WebMChunkContext {
+typedef struct WebMStreamingChunkContext {
     const AVClass *class;
-    int chunk_start_index;
-    char *header_filename;
-    int chunk_duration;
-    int chunk_index;
-    char *http_method;
-    uint64_t duration_written;
+    char *stream_url;
+    char *info_url;
     int64_t prev_pts;
     ff_const59 AVOutputFormat *oformat;
     AVFormatContext *avf;
-} WebMChunkContext;
+    AVIOContext *info_io;
+} WebMStreamingChunkContext;
+
+enum WebMStreamEvent {
+    WEBM_STREAM_EVENT_INITIALIZATION_SEGMENT_START = 1,
+    WEBM_STREAM_EVENT_MEDIA_SEGMENT_START = 2
+}
+
+typedef struct WebMStreamInfo {
+    WebMStreamInfo event;
+    int64_t offset;
+} WebMStreamInfo;
+
+// typedef struct WebMChunkContext {
+//     const AVClass *class;
+//     int chunk_start_index;
+//     char *header_filename;
+//     int chunk_duration;
+//     int chunk_index;
+//     char *http_method;
+//     uint64_t duration_written;
+//     int64_t prev_pts;
+//     ff_const59 AVOutputFormat *oformat;
+//     AVFormatContext *avf;
+// } WebMChunkContext;
 
 static int chunk_mux_init(AVFormatContext *s)
 {
@@ -63,6 +97,7 @@ static int chunk_mux_init(AVFormatContext *s)
     AVFormatContext *oc;
     int ret;
 
+    // Allocate the WebM format context
     ret = avformat_alloc_output_context2(&wc->avf, wc->oformat, NULL, NULL);
     if (ret < 0)
         return ret;
@@ -72,60 +107,30 @@ static int chunk_mux_init(AVFormatContext *s)
     oc->max_delay          = s->max_delay;
     av_dict_copy(&oc->metadata, s->metadata, 0);
 
+    // Set WebM format options
     *(const AVClass**)oc->priv_data = oc->oformat->priv_class;
     av_opt_set_defaults(oc->priv_data);
     av_opt_set_int(oc->priv_data, "dash", 1, 0);
     av_opt_set_int(oc->priv_data, "cluster_time_limit", wc->chunk_duration, 0);
     av_opt_set_int(oc->priv_data, "live", 1, 0);
 
+    // Expose top-level streams to WebM muxer
     oc->streams = s->streams;
     oc->nb_streams = s->nb_streams;
 
     return 0;
 }
 
-static int get_chunk_filename(AVFormatContext *s, int is_header, char filename[MAX_FILENAME_SIZE])
-{
-    WebMChunkContext *wc = s->priv_data;
-    AVFormatContext *oc = wc->avf;
-    if (!filename) {
-        return AVERROR(EINVAL);
-    }
-    if (is_header) {
-        int len;
-        if (!wc->header_filename) {
-            av_log(oc, AV_LOG_ERROR, "No header filename provided\n");
-            return AVERROR(EINVAL);
-        }
-        len = av_strlcpy(filename, wc->header_filename, MAX_FILENAME_SIZE);
-        if (len >= MAX_FILENAME_SIZE) {
-            av_log(oc, AV_LOG_ERROR, "Header filename too long\n");
-            return AVERROR(EINVAL);
-        }
-    } else {
-        if (av_get_frame_filename(filename, MAX_FILENAME_SIZE,
-                                  s->url, wc->chunk_index - 1) < 0) {
-            av_log(oc, AV_LOG_ERROR, "Invalid chunk filename template '%s'\n", s->url);
-            return AVERROR(EINVAL);
-        }
-    }
-    return 0;
-}
-
 static int webm_chunk_write_header(AVFormatContext *s)
 {
-    WebMChunkContext *wc = s->priv_data;
+    WebMStreamingChunkContext *wc = s->priv_data;
     AVFormatContext *oc = NULL;
     int ret;
     int i;
-    AVDictionary *options = NULL;
-    char oc_filename[MAX_FILENAME_SIZE];
-    char *oc_url;
 
-    // DASH Streams can only have either one track per file.
-    if (s->nb_streams != 1) { return AVERROR_INVALIDDATA; }
+    // // DASH Streams can only have either one track per file.
+    // if (s->nb_streams != 1) { return AVERROR_INVALIDDATA; }
 
-    wc->chunk_index = wc->chunk_start_index;
     wc->oformat = av_guess_format("webm", s->url, "video/webm");
     if (!wc->oformat)
         return AVERROR_MUXER_NOT_FOUND;
@@ -134,26 +139,32 @@ static int webm_chunk_write_header(AVFormatContext *s)
     ret = chunk_mux_init(s);
     if (ret < 0)
         return ret;
+
+    // Get the context for the WebM muxer
     oc = wc->avf;
-    ret = get_chunk_filename(s, 1, oc_filename);
+
+    // Initialize WebM Muxer IO using the top-level format context
+    ff_format_set_url(oc, av_strdup(wc->stream_url));
+    ret = s->io_open(s, &oc->pb, oc->url, AVIO_FLAG_WRITE, NULL);
     if (ret < 0)
         return ret;
-    oc_url = av_strdup(oc_filename);
-    if (!oc_url)
-        return AVERROR(ENOMEM);
-    ff_format_set_url(oc, oc_url);
-    if (wc->http_method)
-        av_dict_set(&options, "method", wc->http_method, 0);
-    ret = s->io_open(s, &oc->pb, oc->url, AVIO_FLAG_WRITE, &options);
-    av_dict_free(&options);
+    oc->pb->seekable = 0;
+
+    // Initialize stream information IO using the top-level format context
+    ret = s->io_open(s, &wc->info_io, wc->info_url, AVIO_FLAG_WRITE, NULL);
     if (ret < 0)
         return ret;
 
-    oc->pb->seekable = 0;
+    // Write initialization segment information
+    printf("sizeof(WebMStreamInfo) %d", sizeof(WebMStreamInfo));
+    WebMStreamInfo stream_init = { WEBM_STREAM_EVENT_INITIALIZATION_SEGMENT_START, 0 };
+    avio_write(wc->info_io, &stream_init, sizeof(WebMStreamInfo));
+
+    // Write the WebM header
     ret = oc->oformat->write_header(oc);
     if (ret < 0)
         return ret;
-    ff_format_io_close(s, &oc->pb);
+
     for (i = 0; i < s->nb_streams; i++) {
         // ms precision is the de-facto standard timescale for mkv files.
         avpriv_set_pts_info(s->streams[i], 64, 1, 1000);
@@ -161,9 +172,19 @@ static int webm_chunk_write_header(AVFormatContext *s)
     return 0;
 }
 
+static int streaming_webm_chunk_write_header(AVFormatContext *s) {
+    // Initialize WebM muxer
+
+    // Open IO for metadata stream
+
+    // Write initial metadata message
+
+    // Write WebM header 
+}
+
 static int chunk_start(AVFormatContext *s)
 {
-    WebMChunkContext *wc = s->priv_data;
+    WebMChunkStreamingContext *wc = s->priv_data;
     AVFormatContext *oc = wc->avf;
     int ret;
 
@@ -216,6 +237,7 @@ static int webm_chunk_write_packet(AVFormatContext *s, AVPacket *pkt)
     AVStream *st = s->streams[pkt->stream_index];
     int ret;
 
+    // TODO: No idea what this does
     if (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
         if (wc->prev_pts != AV_NOPTS_VALUE)
             wc->duration_written += av_rescale_q(pkt->pts - wc->prev_pts,
@@ -224,6 +246,9 @@ static int webm_chunk_write_packet(AVFormatContext *s, AVPacket *pkt)
         wc->prev_pts = pkt->pts;
     }
 
+    // TODO: Figure out if we can use video keyframes for chunk boundaries
+    // when encoding both audio and video.
+    
     // For video, a new chunk is started only on key frames. For audio, a new
     // chunk is started based on chunk_duration. Also, a new chunk is started
     // unconditionally if there is no currently open chunk.
@@ -256,18 +281,19 @@ static int webm_chunk_write_trailer(AVFormatContext *s)
     oc->oformat->write_trailer(oc);
     ret = chunk_end(s, 0);
 fail:
+    // TODO: check that this always works
+    ff_format_io_close(s, &oc->pb);
     oc->streams = NULL;
     oc->nb_streams = 0;
     avformat_free_context(oc);
     return ret;
 }
 
-#define OFFSET(x) offsetof(WebMChunkContext, x)
+// TODO: How tf to make this accept options for WebM container? Something in docs about child entities with AVOptions.
+#define OFFSET(x) offsetof(WebMStreamingChunkContext, x)
 static const AVOption options[] = {
-    { "chunk_start_index",  "start index of the chunk", OFFSET(chunk_start_index), AV_OPT_TYPE_INT, {.i64 = 0}, 0, INT_MAX, AV_OPT_FLAG_ENCODING_PARAM },
-    { "header", "filename of the header where the initialization data will be written", OFFSET(header_filename), AV_OPT_TYPE_STRING, { 0 }, 0, 0, AV_OPT_FLAG_ENCODING_PARAM },
-    { "audio_chunk_duration", "duration of each chunk in milliseconds", OFFSET(chunk_duration), AV_OPT_TYPE_INT, {.i64 = 5000}, 0, INT_MAX, AV_OPT_FLAG_ENCODING_PARAM },
-    { "method", "set the HTTP method", OFFSET(http_method), AV_OPT_TYPE_STRING, {.str = NULL},  0, 0, AV_OPT_FLAG_ENCODING_PARAM },
+    { "stream_url",  "output url for WebM media stream", OFFSET(stream_url), AV_OPT_TYPE_STRING, { 0 }, 0, 0, AV_OPT_FLAG_ENCODING_PARAM },
+    { "info_url", "output url for stream information", OFFSET(info_url), AV_OPT_TYPE_STRING, { 0 }, 0, 0, AV_OPT_FLAG_ENCODING_PARAM },
     { NULL },
 };
 
@@ -287,7 +313,7 @@ AVOutputFormat webm_streaming_chunk_muxer = {
                       AVFMT_TS_NONSTRICT,
     .audio_codec    = AV_CODEC_ID_OPUS,
     .video_codec    = AV_CODEC_ID_VP9,
-    .priv_data_size = sizeof(WebMChunkContext),
+    .priv_data_size = sizeof(WebMStreamingChunkContext),
     .write_header   = webm_chunk_write_header,
     .write_packet   = webm_chunk_write_packet,
     .write_trailer  = webm_chunk_write_trailer,

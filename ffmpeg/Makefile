@@ -26,7 +26,7 @@ encode_video: encode_video.o encode_video
 .phony: clean-test clean
 
 clean-test:
-	$(RM) test*.pgm test.h264 test.mp2 test.sw test.mpg test.hdr test*.chk
+	$(RM) test.mp4 test.webm test.hdr test*.chk
 
 clean: clean-test
 	$(RM) $(PROGRAMS) $(OBJS) webm_streaming_chunk.o
