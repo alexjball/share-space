@@ -67,6 +67,7 @@ typedef struct WebMStreamingChunkContext
     ff_const59 AVOutputFormat *oformat;
     AVFormatContext *avf;
     AVIOContext *info_io;
+    bool open_media_segment;
 } WebMStreamingChunkContext;
 
 enum WebMStreamEvent
@@ -75,6 +76,9 @@ enum WebMStreamEvent
     WEBM_STREAM_EVENT_MEDIA_SEGMENT_START = 2
 }
 
+// TODO: make sure this is written consistently to info_stream
+// event: 1 byte
+// offset: 8 bytes, js can only handle 53 bits.
 typedef struct WebMStreamInfo
 {
     WebMStreamInfo event;
@@ -93,6 +97,11 @@ typedef struct WebMStreamInfo
 //     ff_const59 AVOutputFormat *oformat;
 //     AVFormatContext *avf;
 // } WebMChunkContext;
+
+static void write_info(AVIOContext *info_io, WebMStreamInfo *info) {
+    avio_write(info_io, info, sizeof(WebMStreamInfo));
+    avio_flush(info_io);
+}
 
 static int chunk_mux_init(AVFormatContext *s)
 {
@@ -114,7 +123,7 @@ static int chunk_mux_init(AVFormatContext *s)
     *(const AVClass **)oc->priv_data = oc->oformat->priv_class;
     av_opt_set_defaults(oc->priv_data);
     av_opt_set_int(oc->priv_data, "dash", 1, 0);
-    av_opt_set_int(oc->priv_data, "cluster_time_limit", wc->chunk_duration, 0);
+    // av_opt_set_int(oc->priv_data, "cluster_time_limit", wc->chunk_duration, 0);
     av_opt_set_int(oc->priv_data, "live", 1, 0);
 
     // Expose top-level streams to WebM muxer
@@ -159,9 +168,9 @@ static int webm_chunk_write_header(AVFormatContext *s)
         return ret;
 
     // Write initialization segment information
-    printf("sizeof(WebMStreamInfo) %d", sizeof(WebMStreamInfo));
-    WebMStreamInfo stream_init = {WEBM_STREAM_EVENT_INITIALIZATION_SEGMENT_START, 0};
-    avio_write(wc->info_io, &stream_init, sizeof(WebMStreamInfo));
+    printf("sizeof(WebMStreamInfo) %d\n", sizeof(WebMStreamInfo));
+    WebMStreamInfo initialization_segment_info = {WEBM_STREAM_EVENT_INITIALIZATION_SEGMENT_START, 0};
+    write_info(wc->info_io, &initialization_segment_info);
 
     // Write the WebM header
     ret = oc->oformat->write_header(oc);
@@ -176,63 +185,27 @@ static int webm_chunk_write_header(AVFormatContext *s)
     return 0;
 }
 
-static int streaming_webm_chunk_write_header(AVFormatContext *s)
-{
-    // Initialize WebM muxer
-
-    // Open IO for metadata stream
-
-    // Write initial metadata message
-
-    // Write WebM header
-}
-
-static int chunk_start(AVFormatContext *s)
+static void media_segment_start(AVFormatContext *s)
 {
     WebMChunkStreamingContext *wc = s->priv_data;
     AVFormatContext *oc = wc->avf;
-    int ret;
 
-    ret = avio_open_dyn_buf(&oc->pb);
-    if (ret < 0)
-        return ret;
-    wc->chunk_index++;
-    return 0;
+    wc->open_media_segment = true;
+
+    WebMStreamInfo media_segment_info =
+        {WEBM_STREAM_EVENT_MEDIA_SEGMENT_START, avio_tell(oc->pb)};
+
+    write_info(wc->info_io, &media_segment_info);
 }
 
-static int chunk_end(AVFormatContext *s, int flush)
+static void media_segment_end(AVFormatContext *s, int flush)
 {
     WebMChunkContext *wc = s->priv_data;
     AVFormatContext *oc = wc->avf;
-    int ret;
-    int buffer_size;
-    uint8_t *buffer;
-    AVIOContext *pb;
-    char filename[MAX_FILENAME_SIZE];
-    AVDictionary *options = NULL;
-
-    if (!oc->pb)
-        return 0;
 
     if (flush)
         // Flush the cluster in WebM muxer.
         oc->oformat->write_packet(oc, NULL);
-    buffer_size = avio_close_dyn_buf(oc->pb, &buffer);
-    oc->pb = NULL;
-    ret = get_chunk_filename(s, 0, filename);
-    if (ret < 0)
-        goto fail;
-    if (wc->http_method)
-        av_dict_set(&options, "method", wc->http_method, 0);
-    ret = s->io_open(s, &pb, filename, AVIO_FLAG_WRITE, &options);
-    if (ret < 0)
-        goto fail;
-    avio_write(pb, buffer, buffer_size);
-    ff_format_io_close(s, &pb);
-fail:
-    av_dict_free(&options);
-    av_free(buffer);
-    return (ret < 0) ? ret : 0;
 }
 
 static int webm_chunk_write_packet(AVFormatContext *s, AVPacket *pkt)
@@ -252,21 +225,16 @@ static int webm_chunk_write_packet(AVFormatContext *s, AVPacket *pkt)
         wc->prev_pts = pkt->pts;
     }
 
-    // TODO: Figure out if we can use video keyframes for chunk boundaries
-    // when encoding both audio and video.
-
-    // For video, a new chunk is started only on key frames. For audio, a new
-    // chunk is started based on chunk_duration. Also, a new chunk is started
-    // unconditionally if there is no currently open chunk.
-    if (!oc->pb || (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && (pkt->flags & AV_PKT_FLAG_KEY)) ||
-        (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO &&
-         wc->duration_written >= wc->chunk_duration))
+    // On video keyframes, flush the WebM muxer, which triggers the end of the
+    // current cluster. Each cluster corresponds to a media segment ("chunk").
+    if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && (pkt->flags & AV_PKT_FLAG_KEY))
     {
         wc->duration_written = 0;
-        if ((ret = chunk_end(s, 1)) < 0 || (ret = chunk_start(s)) < 0)
+        if (wc->open_media_segment)
         {
-            return ret;
+            media_segment_end(s, 1);
         }
+        media_segment_start(s);
     }
 
     ret = oc->oformat->write_packet(oc, pkt);
@@ -280,14 +248,15 @@ static int webm_chunk_write_trailer(AVFormatContext *s)
     AVFormatContext *oc = wc->avf;
     int ret;
 
+    // TODO: update
     if (!oc->pb)
     {
-        ret = chunk_start(s);
+        ret = media_segment_start(s);
         if (ret < 0)
             goto fail;
     }
     oc->oformat->write_trailer(oc);
-    ret = chunk_end(s, 0);
+    ret = media_segment_end(s, 0);
 fail:
     // TODO: check that this always works
     ff_format_io_close(s, &oc->pb);
