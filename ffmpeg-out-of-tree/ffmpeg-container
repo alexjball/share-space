@@ -2,6 +2,14 @@
 #
 # Script for managing an FFmpeg build environment packaged in a Docker container.
 # This wraps the popular ffmpeg container: https://hub.docker.com/r/jrottenberg/ffmpeg
+#
+# To build and use the ffmpeg submodule within the container:
+# > mkdir -p ffmpeg/build/install
+# > cd ffmpeg/build
+# > ./configure --prefix="$(pwd)/install" --enable-libvpx --enable-libopus --enable-libx264 --enable-gpl --enable-shared
+# > make -j 13
+# > make install
+# > LD_LIBRARY_PATH="$(pwd)/install/lib:$LD_LIBRARY_PATH" install/bin/ffmpeg -i ../../assets/earth.mp4 -f webm_streaming_chunk -info_url ../../assets/test.info ../../assets/test.webm
 
 IMAGE_NAME=ffmpeg-build
 CONTAINER_NAME=ffmpeg
