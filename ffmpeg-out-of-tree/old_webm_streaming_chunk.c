@@ -35,7 +35,7 @@
  * is complete, whereas the stream can be forwarded to endpoints while the encoder is still 
  * generating part of the chunk.
  * 
- * Packets are written directly to the output stream. The metadata consists of a simple
+ * TODO: conform to https://ffmpeg.org/developer.html#New-codecs-or-formats-checklist
  */
 
 #include <float.h>
@@ -84,6 +84,11 @@ typedef struct WebMStreamInfo
 
 static void write_info(AVIOContext *info_io, WebMStreamInfo *info)
 {
+    if (!info_io)
+    {
+        return;
+    }
+
     char msg[1024];
     sprintf(msg, "{ \"event\": %d, \"offset\": %ld }\n", info->event, info->offset);
     avio_put_str(info_io, msg);
@@ -127,8 +132,11 @@ static int webm_chunk_write_header(AVFormatContext *s)
     int ret;
     int i;
 
-    // // DASH Streams can only have either one track per file.
-    // if (s->nb_streams != 1) { return AVERROR_INVALIDDATA; }
+    if (!wc->stream_url)
+    {
+        av_log(oc, AV_LOG_ERROR, "No output stream URL (-stream_url) provided\n");
+        return AVERROR(EINVAL);
+    }
 
     wc->oformat = av_guess_format("webm", s->url, "video/webm");
     if (!wc->oformat)
@@ -149,12 +157,14 @@ static int webm_chunk_write_header(AVFormatContext *s)
     oc->pb->seekable = 0;
 
     // Initialize stream information IO using the top-level format context
-    ret = s->io_open(s, &wc->info_io, wc->info_url, AVIO_FLAG_WRITE, NULL);
-    if (ret < 0)
-        return ret;
+    if (wc->info_url)
+    {
+        ret = s->io_open(s, &wc->info_io, wc->info_url, AVIO_FLAG_WRITE, NULL);
+        if (ret < 0)
+            return ret;
+    }
 
     // Write initialization segment information
-    printf("sizeof(WebMStreamInfo) %ld\n", sizeof(WebMStreamInfo));
     WebMStreamInfo initialization_segment_info = {WEBM_STREAM_EVENT_INITIALIZATION_SEGMENT_START, 0};
     write_info(wc->info_io, &initialization_segment_info);
 
@@ -234,7 +244,10 @@ static int webm_chunk_write_trailer(AVFormatContext *s)
 
     // Clean up
     ff_format_io_close(s, &oc->pb);
-    ff_format_io_close(s, &wc->info_io);
+    if (wc->info_io)
+    {
+        ff_format_io_close(s, &wc->info_io);
+    }
     oc->streams = NULL;
     oc->nb_streams = 0;
     avformat_free_context(oc);
