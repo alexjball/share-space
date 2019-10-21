@@ -217,8 +217,8 @@ class MediaSink {
  * emits a `data` event with `{start: Integer, buffer: Buffer}` when a new media buffer
  * is received. `start` is the offset of the first byte in the buffer relative to the
  * start of the stream. The buffer should not be modified.
- * 
- * emits a `segmentStart` event with 
+ *
+ * emits a `segmentStart` event with
  * `{type: INIT_SEGMENT|MEDIA_SEGMENT, start: Integer, buffers: [Buffer]}` when a new
  * segment is detected. `buffers` contains all data from the start of the segment through
  * the last `data` event emitted.
@@ -428,9 +428,9 @@ class MediaMultiplexer {
     }
   }
 
-  /** 
+  /**
    * Add a data callback to receive a media stream.
-   * 
+   *
    * `dataCallback` is a function that accepts a Buffer of media bytes.
    */
   addConsumer(dataCallback) {
@@ -458,4 +458,11 @@ class MediaMultiplexer {
   }
 }
 
-module.exports = StreamingMediaServer;
+module.exports = {
+  StreamingMediaServer,
+  MediaSink,
+  MediaParser,
+  MediaConsumer,
+  MediaMultiplexer,
+  InitSegmentParser
+};

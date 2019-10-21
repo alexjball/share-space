@@ -1,5 +1,5 @@
 const initWebRtc = require("./webrtc-server");
-const StreamingMediaServer = require("./StreamingMediaServer");
+const { StreamingMediaServer } = require("./StreamingMediaServer");
 const express = require("express");
 
 const app = express();
