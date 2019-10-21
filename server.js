@@ -23,7 +23,8 @@ server.on("upgrade", (request, socket, head) => {
 
 const videoServer = new VideoServer({
   streamingPath: "/stream",
-  sinkPath: "/tmp/share-space-video-sink.sock"
+  mediaSinkPath: "/tmp/share-space-video-sink.sock",
+  infoSinkPath: "/tmp/share-space-info-sink.sock"
 });
 videoServer.start();
 initWebRtc(app, "/rtc");

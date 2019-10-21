@@ -6,7 +6,7 @@
 # To build and use the ffmpeg submodule within the container:
 # > mkdir -p ffmpeg/build/install
 # > cd ffmpeg/build
-# > ./configure --prefix="$(pwd)/install" --enable-libvpx --enable-libopus --enable-libx264 --enable-gpl --enable-shared
+# > ../configure --prefix="$(pwd)/install" --enable-libvpx --enable-libopus --enable-libx264 --enable-gpl --enable-shared
 # > make -j 13
 # > make install
 # > LD_LIBRARY_PATH="$(pwd)/install/lib:$LD_LIBRARY_PATH" install/bin/ffmpeg -i ../../assets/earth.mp4 -f webm_streaming_chunk -info_url ../../assets/test.info ../../assets/test.webm
@@ -21,6 +21,7 @@ WORKDIR=/tmp/share-space
 # grab it. So start the room server first.
 # TODO: fix.
 VIDEO_SINK_SOCKET=/tmp/share-space-video-sink.sock
+INFO_SINK_SOCKET=/tmp/share-space-info-sink.sock
 
 build() {
 	docker build \
@@ -40,6 +41,7 @@ start() {
 		--name $CONTAINER_NAME \
 		-v $HOST_MOUNT:$WORKDIR \
 		-v $VIDEO_SINK_SOCKET:$VIDEO_SINK_SOCKET \
+		-v $INFO_SINK_SOCKET:$INFO_SINK_SOCKET \
 		-e LD_LIBRARY_PATH=/opt/ffmpeg/lib \
 		-e PKG_CONFIG_PATH=/opt/ffmpeg/lib/pkgconfig \
 		$IMAGE_NAME bash
