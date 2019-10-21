@@ -1,5 +1,5 @@
 const initWebRtc = require("./webrtc-server");
-const VideoServer = require("./VideoServer");
+const StreamingMediaServer = require("./StreamingMediaServer");
 const express = require("express");
 
 const app = express();
@@ -14,17 +14,17 @@ const server = app.listen(app.get("port"), () => {
 });
 
 server.on("upgrade", (request, socket, head) => {
-  if (videoServer.shouldHandle(request)) {
-    videoServer.handleUpgrade(request, socket, head);
+  if (streamingMediaServer.shouldHandle(request)) {
+    streamingMediaServer.handleUpgrade(request, socket, head);
   } else {
     socket.destroy();
   }
 });
 
-const videoServer = new VideoServer({
+const streamingMediaServer = new StreamingMediaServer({
   streamingPath: "/stream",
   mediaSinkPath: "/tmp/share-space-video-sink.sock",
   infoSinkPath: "/tmp/share-space-info-sink.sock"
 });
-videoServer.start();
+streamingMediaServer.start();
 initWebRtc(app, "/rtc");

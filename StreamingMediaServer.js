@@ -6,7 +6,7 @@ const _ = require("lodash");
 
 /** Handles connections to the media sink */
 // TODO: Write tests that use test webm and info files. Much easier to iterate against tests.
-class StreamingMediaSegmentServer {
+class StreamingMediaServer {
   constructor({ streamingPath, mediaSinkPath, infoSinkPath }) {
     this.paths = {
       stream: streamingPath,
@@ -214,14 +214,23 @@ class MediaSink {
 /**
  * Breaks a media stream into segments.
  *
- * emits a `data` event with the buffered stream on new media.
- * emits a `segmentStart` event with the buffered stream split at the segment.
+ * emits a `data` event with `{start: Integer, buffer: Buffer}` when a new media buffer
+ * is received. `start` is the offset of the first byte in the buffer relative to the
+ * start of the stream. The buffer should not be modified.
+ * 
+ * emits a `segmentStart` event with 
+ * `{type: INIT_SEGMENT|MEDIA_SEGMENT, start: Integer, buffers: [Buffer]}` when a new
+ * segment is detected. `buffers` contains all data from the start of the segment through
+ * the last `data` event emitted.
  *
- * `data` events always precede `segmentStart` events.
+ * `data` events always precede `segmentStart` events. This means that listening once
+ * for `segmentStart` then on `data` results in a seemless media stream beginning at
+ * the received segment.
  */
 class MediaParser extends EventEmitter {
   constructor() {
     super();
+
     this.started = false;
 
     this.info = {
@@ -309,6 +318,7 @@ class MediaParser extends EventEmitter {
   }
 }
 
+/** Extracts and stores the initialization segment from a parsed media stream. */
 class InitSegmentParser extends EventEmitter {
   constructor(mediaParser) {
     if (mediaParser.started) {
@@ -367,6 +377,7 @@ class InitSegmentParser extends EventEmitter {
   }
 }
 
+/** Forwards a media stream to a single data callback. */
 class MediaConsumer {
   constructor(mediaParser, onData) {
     this.mediaParser = mediaParser;
@@ -394,6 +405,7 @@ class MediaConsumer {
   }
 }
 
+/** Splits a parsed media stream between attached consumers. */
 class MediaMultiplexer {
   constructor(mediaParser, initSegmentParser) {
     if (mediaParser.started) {
@@ -416,6 +428,11 @@ class MediaMultiplexer {
     }
   }
 
+  /** 
+   * Add a data callback to receive a media stream.
+   * 
+   * `dataCallback` is a function that accepts a Buffer of media bytes.
+   */
   addConsumer(dataCallback) {
     if (this.consumers.has(dataCallback)) {
       throw Error("Consumer already added");
@@ -441,4 +458,4 @@ class MediaMultiplexer {
   }
 }
 
-module.exports = StreamingMediaSegmentServer;
+module.exports = StreamingMediaServer;
