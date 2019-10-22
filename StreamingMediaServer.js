@@ -5,9 +5,9 @@ const EventEmitter = require("events");
 const _ = require("lodash");
 
 /** Handles connections to the media sink */
-// TODO: Write tests that use test webm and info files. Much easier to iterate against tests.
-class StreamingMediaServer {
+class StreamingMediaServer extends EventEmitter {
   constructor({ streamingPath, mediaSinkPath, infoSinkPath }) {
+    super();
     this.paths = {
       stream: streamingPath,
       media: mediaSinkPath,
@@ -18,20 +18,34 @@ class StreamingMediaServer {
     this.mediaServer = null;
     this.infoServer = null;
     this.sinkConnection = {};
+    this.openSockets = new Set();
+    this.closed = {};
   }
 
   start() {
-    if (this.clientServer) {
+    if (this.mediaServer) {
       throw Error("Already started");
     }
 
-    this.clientServer = new WebSocket.Server({
-      noServer: true,
-      path: this.paths.stream,
-      clientTracking: true
-    });
+    this.clientServer = this.createClientServer();
+    this.mediaServer = this.createMediaServer();
+    this.infoServer = this.createInfoServer();
 
-    this.clientServer.on("connection", ws => {
+    [this.paths.media, this.paths.info].forEach(path => {
+      if (fs.existsSync(path)) {
+        fs.unlinkSync(path);
+      }
+    });
+    this.mediaServer.listen({ path: this.paths.media });
+    this.infoServer.listen({ path: this.paths.info });
+  }
+
+  createClientServer() {
+    const clientServer = new WebSocket.Server({
+      noServer: true,
+      path: this.paths.stream
+    });
+    clientServer.on("connection", ws => {
       console.log("new streaming connection");
       this.addClient(ws);
       ws.on("close", () => {
@@ -39,8 +53,13 @@ class StreamingMediaServer {
         this.removeClient(ws);
       });
     });
+    clientServer.on("close", () => this.closeServer("client"));
 
-    this.mediaServer = net.createServer(socket => {
+    return clientServer;
+  }
+
+  createMediaServer() {
+    const mediaServer = net.createServer(socket => {
       console.log("new media sink connection");
       this.openSinkConnection({ media: socket });
       socket.on("close", hadError => {
@@ -50,13 +69,17 @@ class StreamingMediaServer {
       socket.on("data", data => this.sinkConnection.sink.addMedia(data));
       socket.on("error", err => console.log(`media sink error ${err}`));
     });
-    this.mediaServer.on("error", err =>
+    mediaServer.on("error", err =>
       console.log(`media sink server error ${err}`)
     );
-    this.mediaServer.on("close", () => console.log("media sink server close"));
-    this.mediaServer.maxConnections = 1;
+    mediaServer.on("close", () => this.closeServer("media"));
+    mediaServer.maxConnections = 1;
 
-    this.infoServer = net.createServer(socket => {
+    return mediaServer;
+  }
+
+  createInfoServer() {
+    const infoServer = net.createServer(socket => {
       console.log("new info sink connection");
       socket.setEncoding("utf8");
       this.openSinkConnection({ info: socket });
@@ -69,26 +92,54 @@ class StreamingMediaServer {
         console.log(`info sink connection error ${err}`)
       );
     });
-    this.infoServer.on("error", err =>
-      console.log(`info sink server error ${err}`)
-    );
-    this.infoServer.on("close", () => console.log("info sink server close"));
-    this.infoServer.maxConnections = 1;
+    infoServer.on("error", err => console.log(`info sink server error ${err}`));
+    infoServer.on("close", () => this.closeServer("info"));
+    infoServer.maxConnections = 1;
 
-    [this.paths.media, this.paths.info].forEach(path => {
-      if (fs.existsSync(path)) {
-        fs.unlinkSync(path);
-      }
-    });
-    this.mediaServer.listen({ path: this.paths.media });
-    this.infoServer.listen({ path: this.paths.info });
+    return infoServer;
+  }
+
+  closeServer(type) {
+    console.log(`closed ${type} server`);
+    this.closed[type] = true;
+
+    if (
+      !this.closed.all &&
+      this.closed.media &&
+      this.closed.info &&
+      this.closed.client
+    ) {
+      this.closed.all = true;
+      this.emit("close");
+    }
+  }
+
+  /**
+   * Close the media server, closing contained servers and ending open connections.
+   *
+   * The `close` event is emitted after all servers have closed and connections
+   * have ended (but not necessarily closed)
+   */
+  close(callback) {
+    if (!this.mediaServer) {
+      throw Error("Not started");
+    } else if (this.closed.all) {
+      return;
+    }
+
+    if (callback) {
+      this.once("close", callback);
+    }
+
+    this.closeSinkConnection();
+    this.mediaServer.close();
+    this.infoServer.close();
+    this.clientServer.close();
   }
 
   openSinkConnection(sockets = {}) {
-    this.sinkConnection = {
-      sink: this.sinkConnection.sink || new MediaSink(),
-      ...sockets
-    };
+    this.sinkConnection.sink = this.sinkConnection.sink || new MediaSink();
+    Object.assign(this.sinkConnection, sockets);
     return this.sinkConnection;
   }
 
@@ -292,17 +343,19 @@ class MediaParser extends EventEmitter {
       throw Error(`Expected info offset >= ${this.info.end}, got ${offset}`);
     }
 
+    this.info.end = offset;
+
     if (event === INIT_SEGMENT_START) {
       this.initSegmentReceived = true;
     }
 
     if (offset < this.media.end) {
       // newSegmentData is nonempty since media is buffered whenever media.end > offset.
-      const [unused, newSegmentData] = _.partition(
+      // Find all segments that start after or contain offset
+      const [newSegmentData, unused] = _.partition(
         this.media.buffered,
-        data => offset >= data.start
+        data => data.start >= offset || data.start + data.buffer.length > offset
       );
-      // TODO: feeding video then info results in empty newSegmentData.
       this.emit("newSegment", {
         type: event === INIT_SEGMENT_START ? INIT_SEGMENT : MEDIA_SEGMENT,
         start: newSegmentData[0].start,
@@ -464,5 +517,7 @@ module.exports = {
   MediaParser,
   MediaConsumer,
   MediaMultiplexer,
-  InitSegmentParser
+  InitSegmentParser,
+  INIT_SEGMENT,
+  MEDIA_SEGMENT
 };
