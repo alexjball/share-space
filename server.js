@@ -2,6 +2,8 @@ const initWebRtc = require("./webrtc-server");
 const { StreamingMediaServer } = require("./StreamingMediaServer");
 const express = require("express");
 
+const baseDir = require("path").dirname(require.resolve("./package.json"));
+
 const app = express();
 
 app.use(express.json());
@@ -23,8 +25,8 @@ server.on("upgrade", (request, socket, head) => {
 
 const streamingMediaServer = new StreamingMediaServer({
   streamingPath: "/stream",
-  mediaSinkPath: "/tmp/share-space-video-sink.sock",
-  infoSinkPath: "/tmp/share-space-info-sink.sock"
+  mediaSinkPath: `${baseDir}/build/server/share-space-media-sink.sock`,
+  infoSinkPath: `${baseDir}/build/server/share-space-info-sink.sock`
 });
 streamingMediaServer.start();
 initWebRtc(app, "/rtc");
