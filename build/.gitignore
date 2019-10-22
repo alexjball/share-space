@@ -1,0 +1,13 @@
+# Ignore files but not directories. * matches both files and directories
+# but */ matches only directories. Both match at every directory level
+# at or below this one.
+*
+!*/
+
+# Git doesn't track empty directories, so track .keepdir files, which also 
+# tracks the containing directory. 
+!.keepdir
+
+# Keep this file and the explanation of how this works
+!.gitignore
+!Readme.md
