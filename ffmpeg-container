@@ -10,17 +10,14 @@
 IMAGE_NAME=ffmpeg-build
 CONTAINER_NAME=ffmpeg
 DOCKERFILE_URL='https://raw.githubusercontent.com/jrottenberg/ffmpeg/master/docker-images/4.2/ubuntu/Dockerfile'
-HOST_MOUNT=$(dirname $(dirname $(realpath $0)))
+HOST_MOUNT=$(dirname $(realpath $0))
 WORKDIR=/tmp/share-space
 FFMPEG_SOURCE=$WORKDIR/ffmpeg
 FFMPEG_BUILD=$WORKDIR/build/ffmpeg
 FFMPEG_INSTALL=$FFMPEG_BUILD/install
 
-# Docker will create this if it doesn't exist, and the room server can't
-# grab it. So start the room server first.
-# TODO: fix.
-MEDIA_SINK_SOCKET=/tmp/share-space-media-sink.sock
-INFO_SINK_SOCKET=/tmp/share-space-info-sink.sock
+MEDIA_SINK_SOCKET=$WORKDIR/build/server/share-space-media-sink.sock
+INFO_SINK_SOCKET=$WORKDIR/build/server/share-space-info-sink.sock
 
 build_ffmpeg() {
 	# Run from inside container
@@ -58,9 +55,6 @@ build() {
 }
 
 start() {
-		# -v $MEDIA_SINK_SOCKET:$MEDIA_SINK_SOCKET \
-		# -v $INFO_SINK_SOCKET:$INFO_SINK_SOCKET \
-
 	# FFmpeg is configured to install to /opt/ffmpeg. The Dockerfile then copies libs and binaries to /usr/local.
 	# In order to use pkg-config to build against the libraries, we need to use the .pc files in 
 	# /opt/ffmpeg/lib/pkgconfig, which point to the libraries in /opt/ffmpeg, not /usr/local. So point everything at
