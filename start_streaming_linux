@@ -1,5 +1,0 @@
-ffmpeg -f x11grab \
-    -video_size 640x360 -framerate 5 -thread_queue_size 64 -i :20 \
-    -f pulse -channels 2 -thread_queue_size 64 -i video_streaming \
-    -c:v libx264 -preset fast -pix_fmt yuv420p -s 640x360 -c:a mp3 \
-    -b:a 160k -ar 44100 -threads 0 -f flv rtmp://localhost/triple/stream
