@@ -18,7 +18,6 @@ class StreamingMediaServer extends EventEmitter {
     this.mediaServer = null;
     this.infoServer = null;
     this.sinkConnection = {};
-    this.openSockets = new Set();
     this.closed = {};
   }
 

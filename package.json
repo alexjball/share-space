@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "low-latency shared desktop",
   "scripts": {
-    "test-server": "jest --watch",
+    "test:dev": "jest --watch",
+    "test": "jest",
     "start": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon server.js",
     "client": "node start-client.js"

@@ -46,9 +46,7 @@ describe("StreamingMediaServer", () => {
       }
     });
     frontend.listen(0, frontendHost, () => {
-      clientUrlPrefix = `http://${frontendHost}:${
-        frontend.address().port
-      }`;
+      clientUrlPrefix = `http://${frontendHost}:${frontend.address().port}`;
       done();
     });
 
@@ -119,13 +117,14 @@ describe("StreamingMediaServer", () => {
       }
     });
 
-    const open = {}, writeAfterAllConnect = type => {
-      open[type] = true;
-      if (open.media && open.info && open.client) {
-        mediaSink.write(testMedia);
-        infoSink.write(testInfo);
-      }
-    }
+    const open = {},
+      writeAfterAllConnect = type => {
+        open[type] = true;
+        if (open.media && open.info && open.client) {
+          mediaSink.write(testMedia);
+          infoSink.write(testInfo);
+        }
+      };
     mediaSink.once("connect", () => writeAfterAllConnect("media"));
     infoSink.once("connect", () => writeAfterAllConnect("info"));
     client.once("open", () => writeAfterAllConnect("client"));
