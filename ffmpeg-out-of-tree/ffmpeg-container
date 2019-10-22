@@ -4,24 +4,50 @@
 # This wraps the popular ffmpeg container: https://hub.docker.com/r/jrottenberg/ffmpeg
 #
 # To build and use the ffmpeg submodule within the container:
-# > mkdir -p ffmpeg/build/install
-# > cd ffmpeg/build
-# > ../configure --prefix="$(pwd)/install" --enable-libvpx --enable-libopus --enable-libx264 --enable-gpl --enable-shared
-# > make -j 13
-# > make install
-# > LD_LIBRARY_PATH="$(pwd)/install/lib:$LD_LIBRARY_PATH" install/bin/ffmpeg -i ../../assets/earth.mp4 -f webm_streaming_chunk -info_url ../../assets/test.info ../../assets/test.webm
+# > ./ffmpeg-container build_ffmpeg
+# > ./ffmpeg-container stream_test
 
 IMAGE_NAME=ffmpeg-build
 CONTAINER_NAME=ffmpeg
 DOCKERFILE_URL='https://raw.githubusercontent.com/jrottenberg/ffmpeg/master/docker-images/4.2/ubuntu/Dockerfile'
 HOST_MOUNT=$(dirname $(dirname $(realpath $0)))
 WORKDIR=/tmp/share-space
+FFMPEG_BUILD=$WORKDIR/ffmpeg/build
+FFMPEG_INSTALL=$FFMPEG_BUILD/install
 
 # Docker will create this if it doesn't exist, and the room server can't
 # grab it. So start the room server first.
 # TODO: fix.
 VIDEO_SINK_SOCKET=/tmp/share-space-video-sink.sock
 INFO_SINK_SOCKET=/tmp/share-space-info-sink.sock
+
+build_ffmpeg() {
+	# Run from inside container
+	mkdir -p $FFMPEG_INSTALL
+	cd $FFMPEG_BUILD
+	../configure \
+		--prefix=$FFMPEG_INSTALL \
+		--enable-libvpx \
+		--enable-libopus \
+		--enable-libx264 \
+		--enable-gpl \
+		--enable-shared
+	make -j $(nproc)
+	make install
+}
+
+stream_test() {
+	# Stream an infinite video loop to the room server
+	# Run from inside container
+ 	LD_LIBRARY_PATH="$FFMPEG_INSTALL/lib:$LD_LIBRARY_PATH" \
+		$FFMPEG_INSTALL/bin/ffmpeg \
+		-re \
+		-i $WORKDIR/assets/earth.mp4 \
+		-filter_complex loop=loop=-1:size=30:start=0,realtime \
+		-f webm_streaming_chunk \
+		-info_url unix://$INFO_SINK_SOCKET \
+		unix://$VIDEO_SINK_SOCKET
+}
 
 build() {
 	docker build \
@@ -72,7 +98,13 @@ case "$cmd" in
 	remove)
 		remove $@
 		;;
+	build_ffmpeg)
+		build_ffmpeg $@
+		;;
+	stream_test)
+		stream_test $@
+		;;
 	*)
-		echo "Usage: $prog_name {build|start|attach|remove}"
+		echo "Usage: $prog_name {build|start|attach|remove|build_ffmpeg|stream_test}"
 		exit 1
 esac

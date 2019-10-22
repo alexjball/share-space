@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import "./Room.css";
 
-// const mimeType = 'video/mp4; codecs="avc1.42001e, mp4a.67"';
+// Must match the video stream from the room server, as encoded by FFmpeg.
 const mimeType = 'video/webm; codecs="vp9,opus"';
 
 /**
@@ -41,6 +41,8 @@ export default class WebsocketRoom extends Component {
         this.logPlayback(this.videoRef.current);
         this.pendingBuffers.push(event.data);
         this.tryAppendBuffer();
+      } else {
+        console.log("no sourceBuffer yet");
       }
       this.setState({
         lastMessageTime: performance.now()
@@ -60,6 +62,13 @@ export default class WebsocketRoom extends Component {
     if (video.error) {
       console.error(this.videoRef.current.error);
     }
+
+    const bufferedRanges = [];
+    let i;
+    for (i = 0; i < video.buffered.length; i++) {
+      bufferedRanges.push([video.buffered.start(i), video.buffered.end(i)]);
+    }
+
     console.log(
       `Current playback time: ${
         video.currentTime
@@ -67,10 +76,14 @@ export default class WebsocketRoom extends Component {
         ? video.seekable.end(0)
         : 0) - video.currentTime}, # pending buffers: ${
         this.pendingBuffers.length
+      }. Buffered ranges: ${bufferedRanges}. MediaSource duration: ${
+        this.videoSource.duration
       }`
     );
   }
 
+  // TODO: Seek to latest time if more than 5 seconds behind
+  // TODO: Every 10 seconds, remove old buffers
   tryAppendBuffer = () => {
     if (this.sourceBuffer.updating) {
       console.warn("sourcebuffer is updating, not appending");
