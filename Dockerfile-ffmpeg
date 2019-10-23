@@ -1,0 +1,13 @@
+FROM ffmpeg-build AS build
+
+WORKDIR /tmp/share-space
+
+RUN apt-get -y update && apt-get install -y \
+  less \
+  netcat-openbsd \
+  libsdl2-dev \
+  libva-dev \
+  libvdpau-dev \
+  libxcb1-dev \
+  libxcb-shm0-dev \
+  libxcb-xfixes0-dev

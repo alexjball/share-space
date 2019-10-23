@@ -20,25 +20,30 @@ export default class App extends Component {
   }
 
   render() {
+    let room;
+    switch (this.state.roomType) {
+      case "WebRTC":
+        room = (
+          <WebRtcRoom spaceUrl={this.state.spaceUrl} key={this.state.key} />
+        );
+        break;
+      case "Websocket":
+        room = (
+          <WebsocketRoom spaceUrl={this.state.spaceUrl} key={this.state.key} />
+        );
+        break;
+      default:
+        room = <div className="room"/>;
+    }
     return (
       <div className="App">
         <ControlPanel
           initiallyOpen={true}
-          connect={(spaceUrl, roomType) =>
-            this.setState({ spaceUrl, roomType })
+          connect={(spaceUrl, roomType, key) =>
+            this.setState({ spaceUrl, roomType, key })
           }
         />
-        {this.state.roomType === "WebRTC" ? (
-          <WebRtcRoom
-            spaceUrl={this.state.spaceUrl}
-            key={this.state.spaceUrl}
-          />
-        ) : (
-          <WebsocketRoom
-            spaceUrl={this.state.spaceUrl}
-            key={this.state.spaceUrl}
-          />
-        )}
+        {room}
       </div>
     );
   }

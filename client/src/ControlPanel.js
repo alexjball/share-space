@@ -11,6 +11,7 @@ export default class ControlPanel extends Component {
       open: !!props.initiallyOpen,
       spaceUrl: "localhost:3001"
     };
+    this.clickId = 0;
   }
 
   render() {
@@ -26,27 +27,29 @@ export default class ControlPanel extends Component {
             value={this.state.spaceUrl}
             onChange={e => this.setState({ spaceUrl: e.target.value })}
           />
-          <button
+          {/* <button
             className="item"
             onClick={() =>
               connect(
                 this.state.spaceUrl,
-                "WebRTC"
+                "WebRTC",
+                this.clickId++
               )
             }
           >
             connect WebRTC
-          </button>
+          </button> */}
           <button
             className="item"
             onClick={() =>
               connect(
                 this.state.spaceUrl,
-                "Websocket"
+                "Websocket",
+                this.clickId++
               )
             }
           >
-            connect Websocket
+            Connect
           </button>
         </div>
         <div className="center">
