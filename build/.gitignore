@@ -8,6 +8,7 @@
 # tracks the containing directory. 
 !.keepdir
 
-# Keep this file and the explanation of how this works
+# Keep support files
 !.gitignore
 !Readme.md
+!clean
