@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Initialize vagrant environment
+# Source from ~/.bashrc
+
+export PROJECT_ROOT=$(dirname $(dirname $(realpath $0)))
+
+# Set up paths for using locally-built ffmpeg
+export LD_LIBRARY_PATH="$PROJECT_ROOT/build/ffmpeg/install/lib:$LD_LIBRARY_PATH"
+export PATH="$PROJECT_ROOT/build/ffmpeg/install/bin:$PATH"
+
+# Default working directory is the project
+cd $PROJECT_ROOT

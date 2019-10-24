@@ -1,0 +1,123 @@
+#!/bin/bash
+#
+# Groups commands for controlling the vagrant environment
+
+source $(dirname $(realpath $0))/base_env
+
+NODE_VERSION=v12.13.0
+
+FFMPEG_SOURCE=$PROJECT_ROOT/ffmpeg
+FFMPEG_BUILD=$PROJECT_ROOT/build/ffmpeg
+FFMPEG_INSTALL=$FFMPEG_BUILD/install
+
+MEDIA_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-media-sink.sock
+INFO_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-info-sink.sock
+
+install_node() {
+  if [ -z $(command -v nvm) ]; then
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash || echo "Error installing nvm"; exit 1
+    source ~/.bashrc
+    [ -n $(command -v nvm) ] || echo "Can't find nvm after installing"; exit 1
+  fi
+
+  if [ -z $(which node) -o $(node -v) != $NODE_VERSION ]; then
+    nvm install $NODE_VERSION || echo "Error installing node $NODE_VERSION"; exit 1
+    [ $(node -v) == $NODE_VERSION ] || echo "Wrong node version after installing"; exit 1
+  fi
+}
+
+update() {
+  sudo apt-get -y update
+}
+
+install_gui_deps() {
+  # TODO: Figure out which desktop environment and GUI apps to install
+  # TODO: Figure out how to configure the desktop environment for an X server
+  # TODO: Add a command to start and stop an X session
+  # TODO: Eventually add a command to start and stop an X session, ffmpeg stream, and room server together.
+  sudo apt-get -y install \
+    xvfb \
+    x11vnc
+}
+
+install_ffmpeg_deps() {
+  sudo apt-get -y install \
+    autoconf \
+    automake \
+    build-essential \
+    cmake \
+    git-core \
+    libass-dev \
+    libfreetype6-dev \
+    libsdl2-dev \
+    libtool \
+    libva-dev \
+    libvdpau-dev \
+    libvorbis-dev \
+    libxcb1-dev \
+    libxcb-shm0-dev \
+    libxcb-xfixes0-dev \
+    pkg-config \
+    texinfo \
+    zlib1g-dev \
+    libx264-dev \
+    libvpx-dev \
+    libopus-dev
+}
+
+configure_ffmpeg() {
+	cd $FFMPEG_BUILD
+	$FFMPEG_SOURCE/configure \
+		--prefix=$FFMPEG_INSTALL \
+		--enable-libvpx \
+		--enable-libopus \
+		--enable-libx264 \
+		--enable-gpl \
+		--enable-shared
+}
+
+build_ffmpeg() {
+	configure_ffmpeg && \
+		make -j $(nproc) && \
+		make install
+}
+
+stream_test() {
+	INFO_URL=${1:-"unix://$INFO_SINK_SOCKET"}
+	MEDIA_URL=${2:-"unix://$MEDIA_SINK_SOCKET"}
+
+	# Stream an infinite video loop to the room server
+	# bin and lib paths are configured in bashrc
+  ffmpeg \
+		-re \
+		-i $PROJECT_ROOT/assets/earth.mp4 \
+		-vf "loop=loop=-1:size=30:start=0,realtime" \
+		-f webm_streaming_chunk \
+		-info_url $INFO_URL \
+		$MEDIA_URL
+}
+
+prog_name=$0
+cmd=$1
+shift || true
+
+case "$cmd" in
+  install_ffmpeg_deps)
+    install_ffmpeg_deps $@
+    ;;
+  install_node)
+    install_node $@
+    ;;
+	build_ffmpeg)
+		build_ffmpeg $@
+		;;
+	configure_ffmpeg)
+		configure_ffmpeg $@
+		;;
+	stream_test)
+		stream_test $@
+		;;
+	*)
+		echo "Usage: $prog_name {install_node|install_ffmpeg_deps|configure_ffmpeg|build_ffmpeg|stream_test}"
+		exit 1
+esac
