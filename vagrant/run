@@ -35,6 +35,17 @@ install_gui_deps() {
   # TODO: Figure out how to configure the desktop environment for an X server
   # TODO: Add a command to start and stop an X session
   # TODO: Eventually add a command to start and stop an X session, ffmpeg stream, and room server together.
+  # Try xvfb-run --server-args="-screen 0 1024x768x24" ico -faces
+  # Xvfb is the X server plus a framebuffer. A display manager provides a GUI around sessions and windows
+  # managers. We don't need that since we're starting sessions on server startup. A session manager 
+  # initializes programs in a graphical login session, so this is where we configure the web browser to open.
+  # A window manager provides the in-session GUI around program windows; we should use a simple floating
+  # window manager.
+  # X clients (which is effectively what x11grab is) use the display number to resolve the local socket to
+  # use to connect to the X server. They also send an auth key, which is stored in an Xauthority file, the
+  # path to which is set to $XAUTHORITY before initializing a session. Since no one else is accessing the
+  # server, it may be OK to disable auth. If not, x11grab will need access to the key, so might need to 
+  # set XAUTHORITY in a shell above x11grab and the X server.
   sudo apt-get -y install \
     xvfb \
     x11vnc
