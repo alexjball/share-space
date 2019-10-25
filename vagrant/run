@@ -17,6 +17,7 @@ XDISPLAY=0
 XAUTHORITY=~/.Xauthority 
 SCREEN_WIDTH=1280
 SCREEN_HEIGHT=720
+FRAMERATE=30
 
 RUN=$PROJECT_ROOT/vagrant/run
 
@@ -129,8 +130,13 @@ install_gui_deps() {
     # cinnamon-core \
     # xinit \
     # dbus-x11 \
-    # firefox 
+    # firefox (doesn't seem to support all video providers with DRM enabled)
+    # https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    # pavucontrol
     # TODO: Better cursor, may be x11vnc
+
+  # Prevent lightdm from running
+  sudo systemctl disable display-manager.service
 }
 
 install_ffmpeg_deps() {
@@ -164,7 +170,9 @@ configure_ffmpeg() {
 		--prefix=$FFMPEG_INSTALL \
 		--enable-libvpx \
 		--enable-libopus \
+    --enable-libvorbis \
 		--enable-libx264 \
+    --enable-libpulse \
 		--enable-gpl \
 		--enable-shared
 }
@@ -176,48 +184,39 @@ build_ffmpeg() {
 }
 
 screen_capture_stream_test() {
-  INFO_URL=${1:-"unix://$INFO_SINK_SOCKET"}
-	MEDIA_URL=${2:-"unix://$MEDIA_SINK_SOCKET"}
+  local INFO_URL=${1:-"unix://$INFO_SINK_SOCKET"}
+	local MEDIA_URL=${2:-"unix://$MEDIA_SINK_SOCKET"}
 
-  # ffmpeg \
-  #   -v debug \
-  #   -f x11grab \
-  #   -probesize 32 \
-  #   -video_size 1280x720 \
-  #   -framerate 30 \
-  #   -i :0 \
-  #   -pix_fmt yuv420p \
-	# 	-f webm_streaming_chunk \
-  #   -dash true \
-	# 	-info_url $INFO_URL \
-	# 	$MEDIA_URL
-
-ffmpeg \
-    -v debug \
+  ffmpeg \
+    -v info \
+    -f pulse \
+      -channels 2 \
+      -thread_queue_size 500 \
+      -i default \
     -f x11grab \
-    -probesize 32 \
-    -video_size 1280x720 \
-    -framerate 30 \
-    -i :0 \
+      -probesize 32 \
+      -video_size ${SCREEN_WIDTH}x${SCREEN_HEIGHT} \
+      -framerate $FRAMERATE \
+      -i :0 \
+    -threads 0 \
     -pix_fmt yuv420p \
+    -c:a libvorbis \
     -c:v libvpx-vp9 \
-    -quality realtime \
-    -speed 8 \
-    -tile-columns 4 \
-    -frame-parallel 1 \
-    -threads 2 \
-    -static-thresh 0 \
-    -max-intra-rate 300 \
-    -row-mt 1 \
-    -error-resilient 1 \
-    -lag-in-frames 0 \
-    -qmin 4 -qmax 48 \
-    -crf 30 \
-    -b:v 500k \
+      -quality realtime \
+      -speed 8 \
+      -qmin 4 -qmax 48 \
+      -crf 15 \
+      -b:v 1000k \
+      -static-thresh 0 \
+      -max-intra-rate 300 \
+      -lag-in-frames 0 \
+      -error-resilient 1 \
+      -tile-columns 4 \
+      -frame-parallel 1 \
+      -row-mt 1 \
     -f webm_streaming_chunk \
-    -dash true \
-		-info_url $INFO_URL \
-		$MEDIA_URL
+      -info_url $INFO_URL \
+      $MEDIA_URL
 }
 
 stream_test() {

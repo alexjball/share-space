@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import "./Room.css";
 
 // Must match the video stream from the room server, as encoded by FFmpeg.
-const mimeType = 'video/webm; codecs="vp9,opus"';
+const mimeType = 'video/webm; codecs="vp9,vorbis"';
 const maxLag = 5,
   maxBufferSize = 20,
   playbackSlop = 1,
@@ -21,6 +21,7 @@ export default class WebsocketRoom extends Component {
     this.state = { status: "Waiting to connect" };
     this.videoRef = React.createRef();
     this.pendingBuffers = [];
+    this.perfInfo = [];
 
     if (!MediaSource.isTypeSupported(mimeType)) {
       throw Error(`MIME type ${mimeType} not supported`);
@@ -40,10 +41,10 @@ export default class WebsocketRoom extends Component {
     ws.onclose = () => {
       this.setState({ status: "Closed" });
     };
-    ws.onmessage = event => {
+    ws.onmessage = ({ data }) => {
       if (this.sourceBuffer) {
-        this.logPlayback(this.videoRef.current);
-        this.updateBuffer(event.data);
+        this.logPlayback(this.videoRef.current, data);
+        this.updateBuffer(data);
       } else {
         console.log("no sourceBuffer yet");
       }
@@ -61,10 +62,18 @@ export default class WebsocketRoom extends Component {
     this.videoRef.current.src = URL.createObjectURL(videoSource);
   }
 
-  logPlayback(video) {
+  logPlayback(video, data) {
     if (video.error) {
       console.error(this.videoRef.current.error);
     }
+
+    const now = performance.now();
+    this.perfInfo = this.perfInfo.filter(i => now - i.time < 5000);
+    this.perfInfo.push({ time: now, length: data.byteLength });
+    const avgBitrate =
+      (1e-3 *
+        this.perfInfo.map(i => i.length).reduce((a, b) => a + b, 0)) /
+      this.perfInfo.length;
 
     const bufferedRanges = [];
     let i;
@@ -77,11 +86,8 @@ export default class WebsocketRoom extends Component {
         video.currentTime
       }. Available seek ahead: ${(video.seekable.length
         ? video.seekable.end(0)
-        : 0) - video.currentTime}, # pending buffers: ${
-        this.pendingBuffers.length
-      }. Buffered ranges: ${bufferedRanges}. MediaSource duration: ${
-        this.videoSource.duration
-      }`
+        : 0) -
+        video.currentTime}. Buffered ranges: ${bufferedRanges}. Avg bitrate: ${avgBitrate}k/s.`
     );
   }
 

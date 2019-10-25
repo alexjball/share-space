@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# ffmpeg -v info -f x11grab -probesize 32 -video_size 1280x720 -framerate 30 -i :0 \
+# ffmpeg -v info -f x11grab -probesize 32 -video_size 1280x720 -framerate 5 -i :0 \
 ffmpeg -v info -i $1 \
     -c:v libvpx-vp9 \
     -quality realtime \
