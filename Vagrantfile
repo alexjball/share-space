@@ -27,7 +27,7 @@ Vagrant.configure("2") do |config|
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
-  # config.vm.network "private_network", ip: "192.168.33.10"
+  config.vm.network "private_network", type: "dhcp"
 
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
@@ -48,6 +48,6 @@ Vagrant.configure("2") do |config|
 
   # Set up base environment for future shells
   config.vm.provision "shell", inline: <<-SHELL
-    echo "source #{$projectRoot}/vagrant/base_env" >> ~/.bashrc
+    echo "source #{$projectRoot}/vagrant/base_env #{$projectRoot}" >> ~/.bashrc
   SHELL
 end

@@ -2,9 +2,23 @@
 #
 # Groups commands for controlling the vagrant environment
 
-source $(dirname $(realpath $0))/base_env
+source $(dirname $(realpath $0))/base_env $(dirname $(dirname $(realpath $0)))
+
+### Configuration
 
 NODE_VERSION=v12.13.0
+
+XDISPLAY=0
+# Using .Xauthority is potentially less secure than host access with only local access.
+# Since the file needs to be readable by the in-session user, it can potentially be 
+# read over the stream, and gaining a connection to the VM allows taking over the 
+# session. Restricting to local access means you need shell access, which is generally
+# more locked down than the private network of the VM.
+XAUTHORITY=~/.Xauthority 
+SCREEN_WIDTH=1280
+SCREEN_HEIGHT=720
+
+RUN=$PROJECT_ROOT/vagrant/run
 
 FFMPEG_SOURCE=$PROJECT_ROOT/ffmpeg
 FFMPEG_BUILD=$PROJECT_ROOT/build/ffmpeg
@@ -12,6 +26,8 @@ FFMPEG_INSTALL=$FFMPEG_BUILD/install
 
 MEDIA_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-media-sink.sock
 INFO_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-info-sink.sock
+
+### Implementations
 
 install_node() {
   if [ -z $(command -v nvm) ]; then
@@ -24,6 +40,67 @@ install_node() {
     nvm install $NODE_VERSION || echo "Error installing node $NODE_VERSION"; exit 1
     [ $(node -v) == $NODE_VERSION ] || echo "Wrong node version after installing"; exit 1
   fi
+}
+
+_kill() {
+  local PIDS=($(pgrep $1))
+
+  for pid in ${PIDS[*]}; do
+    [ -d "/proc/$pid" ] && echo "Killing $1 with PID $pid"
+    kill $pid 2&>1 /dev/null
+    timeout 3s tail --pid=$pid -f /dev/null
+    kill -KILL $pid 2&>1 /dev/null
+  done
+}
+
+gui_up() {
+  if [ -z "$(pgrep Xvfb)" ]; then
+    nohup $RUN run_Xvfb &> $PROJECT_ROOT/build/vagrant/xvfb.log &
+  else 
+    echo "Xvfb already running"
+  fi
+
+  if [ -z "$(pgrep x11vnc)" ]; then
+    nohup $RUN run_x11vnc &> $PROJECT_ROOT/build/vagrant/x11vnc.log &
+  else 
+    echo "x11vnc already running"
+  fi
+}
+
+gui_down() {
+  _kill x11vnc
+  _kill Xvfb
+}
+
+gui_status() {
+  echo "Xvfb PID's:
+  $(ps -e | grep -i xvfb)"
+  echo "x11vnc PID's:
+  $(ps -e | grep -i x11)"
+}
+
+run_Xvfb() {
+  # startx \
+  #   /etc/X11/Xsession -- \
+  #   $(which Xvfb) \
+  #     ":$XDISPLAY" \
+  #     -screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x24
+  #     # -auth $XAUTHORITY \
+
+  xvfb-run \
+    --server-num=$XDISPLAY \
+    --auth-file=$XAUTHORITY \
+    --server-args="-screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x24" \
+    /etc/X11/Xsession cinnamon-session
+}
+
+run_x11vnc() {
+  x11vnc \
+    -auth $XAUTHORITY \
+    -display :$XDISPLAY \
+    -nevershared \
+    -loop \
+    -forever 
 }
 
 update() {
@@ -49,6 +126,11 @@ install_gui_deps() {
   sudo apt-get -y install \
     xvfb \
     x11vnc
+    # cinnamon-core \
+    # xinit \
+    # dbus-x11 \
+    # firefox 
+    # TODO: Better cursor, may be x11vnc
 }
 
 install_ffmpeg_deps() {
@@ -93,6 +175,51 @@ build_ffmpeg() {
 		make install
 }
 
+screen_capture_stream_test() {
+  INFO_URL=${1:-"unix://$INFO_SINK_SOCKET"}
+	MEDIA_URL=${2:-"unix://$MEDIA_SINK_SOCKET"}
+
+  # ffmpeg \
+  #   -v debug \
+  #   -f x11grab \
+  #   -probesize 32 \
+  #   -video_size 1280x720 \
+  #   -framerate 30 \
+  #   -i :0 \
+  #   -pix_fmt yuv420p \
+	# 	-f webm_streaming_chunk \
+  #   -dash true \
+	# 	-info_url $INFO_URL \
+	# 	$MEDIA_URL
+
+ffmpeg \
+    -v debug \
+    -f x11grab \
+    -probesize 32 \
+    -video_size 1280x720 \
+    -framerate 30 \
+    -i :0 \
+    -pix_fmt yuv420p \
+    -c:v libvpx-vp9 \
+    -quality realtime \
+    -speed 8 \
+    -tile-columns 4 \
+    -frame-parallel 1 \
+    -threads 2 \
+    -static-thresh 0 \
+    -max-intra-rate 300 \
+    -row-mt 1 \
+    -error-resilient 1 \
+    -lag-in-frames 0 \
+    -qmin 4 -qmax 48 \
+    -crf 30 \
+    -b:v 500k \
+    -f webm_streaming_chunk \
+    -dash true \
+		-info_url $INFO_URL \
+		$MEDIA_URL
+}
+
 stream_test() {
 	INFO_URL=${1:-"unix://$INFO_SINK_SOCKET"}
 	MEDIA_URL=${2:-"unix://$MEDIA_SINK_SOCKET"}
@@ -108,27 +235,46 @@ stream_test() {
 		$MEDIA_URL
 }
 
+help() {
+  echo "Usage: $prog_name { $(join_by " | " ${CMDS[*]}) } [args ...]"
+}
+
+### Command Line Interface
+
+join_by() {
+  local d=$1; 
+  shift; 
+  echo -n "$1"; 
+  shift; 
+  printf "%s" "${@/#/$d}"
+}
+
+CMDS=(install_node \
+      run_Xvfb \
+      run_x11vnc \
+      update \
+      install_gui_deps \
+      install_ffmpeg_deps \
+      configure_ffmpeg \
+      build_ffmpeg \
+      stream_test \
+      screen_capture_stream_test \
+      gui_up \
+      gui_down \
+      gui_status \
+      help)
+
 prog_name=$0
 cmd=$1
 shift || true
 
-case "$cmd" in
-  install_ffmpeg_deps)
-    install_ffmpeg_deps $@
-    ;;
-  install_node)
-    install_node $@
-    ;;
-	build_ffmpeg)
-		build_ffmpeg $@
-		;;
-	configure_ffmpeg)
-		configure_ffmpeg $@
-		;;
-	stream_test)
-		stream_test $@
-		;;
-	*)
-		echo "Usage: $prog_name {install_node|install_ffmpeg_deps|configure_ffmpeg|build_ffmpeg|stream_test}"
-		exit 1
-esac
+for option in ${CMDS[*]}; do
+  if [ "$cmd" == "$option" ]; then
+    $cmd $@
+    exit
+  fi
+done
+
+echo "Unrecognized command $cmd"
+help
+exit 1
