@@ -8,6 +8,10 @@ const maxLag = 5,
   playbackSlop = 1,
   bufferSlop = 5;
 
+const websocketProtocol = window.location.protocol.startsWith("https")
+  ? "wss"
+  : "ws";
+
 /**
  * The main interface to spaces, using a websocket.
  *
@@ -29,7 +33,9 @@ export default class WebsocketRoom extends Component {
   }
 
   async connect() {
-    const ws = (this.ws = new WebSocket(`ws://${this.props.spaceUrl}/stream`));
+    const ws = (this.ws = new WebSocket(
+      `${websocketProtocol}://${this.props.spaceUrl}/stream`
+    ));
     ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
@@ -71,8 +77,7 @@ export default class WebsocketRoom extends Component {
     this.perfInfo = this.perfInfo.filter(i => now - i.time < 5000);
     this.perfInfo.push({ time: now, length: data.byteLength });
     const avgBitrate =
-      (1e-3 *
-        this.perfInfo.map(i => i.length).reduce((a, b) => a + b, 0)) /
+      (1e-3 * this.perfInfo.map(i => i.length).reduce((a, b) => a + b, 0)) /
       this.perfInfo.length;
 
     const bufferedRanges = [];
@@ -172,8 +177,39 @@ export default class WebsocketRoom extends Component {
         <div>{`spaceUrl: ${this.props.spaceUrl}`}</div>
         <div>{`status: ${this.state.status}`}</div>
         <div>{`latest message time: ${this.state.lastMessageTime}`}</div>
+        <Clock />
         <video autoPlay={true} ref={this.videoRef} className="video" />
       </div>
     );
+  }
+}
+
+class Clock extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      now: new Date()
+    };
+  }
+
+  componentDidMount() {
+    this.updateTime();
+  }
+
+  updateTime = () => {
+    this.setState({ now: new Date() });
+    this.tid = setTimeout(this.updateTime, 500);
+  };
+
+  componentWillUnmount() {
+    if (this.tid) {
+      clearTimeout(this.tid);
+    }
+  }
+
+  render() {
+    const now = this.state.now,
+      theTime = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+    return <div>Current time: {theTime}</div>;
   }
 }

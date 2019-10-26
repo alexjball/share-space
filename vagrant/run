@@ -21,6 +21,8 @@ FRAMERATE=30
 
 RUN=$PROJECT_ROOT/vagrant/run
 
+FRONTEND_SOURCE=~/dev/share-space
+
 FFMPEG_SOURCE=$PROJECT_ROOT/ffmpeg
 FFMPEG_BUILD=$PROJECT_ROOT/build/ffmpeg
 FFMPEG_INSTALL=$FFMPEG_BUILD/install
@@ -54,40 +56,33 @@ _kill() {
   done
 }
 
-gui_up() {
-  if [ -z "$(pgrep Xvfb)" ]; then
-    nohup $RUN run_Xvfb &> $PROJECT_ROOT/build/vagrant/xvfb.log &
-  else 
-    echo "Xvfb already running"
-  fi
-
-  if [ -z "$(pgrep x11vnc)" ]; then
-    nohup $RUN run_x11vnc &> $PROJECT_ROOT/build/vagrant/x11vnc.log &
-  else 
-    echo "x11vnc already running"
-  fi
+stack_status() {
+  ps -e | grep -i -E '(x|node|ffmpeg)'
 }
 
-gui_down() {
+stack_up() {
+  vagrant/run run_Xvfb &
+  vagrant/run run_x11vnc &
+  vagrant/run \
+    screen_capture_stream_test \
+    unix://$FRONTEND_SOURCE/build/server/share-space-info-sink.sock \
+    unix://$FRONTEND_SOURCE/build/server/share-space-media-sink.sock &
+  vagrant/run run_frontend &
+}
+
+stack_down() {
   _kill x11vnc
   _kill Xvfb
+  _kill ffmpeg
+  _kill node
 }
 
-gui_status() {
-  echo "Xvfb PID's:
-  $(ps -e | grep -i xvfb)"
-  echo "x11vnc PID's:
-  $(ps -e | grep -i x11)"
+run_frontend() {
+  cd $FRONTEND_SOURCE && \
+  npm start
 }
 
 run_Xvfb() {
-  # startx \
-  #   /etc/X11/Xsession -- \
-  #   $(which Xvfb) \
-  #     ":$XDISPLAY" \
-  #     -screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x24
-  #     # -auth $XAUTHORITY \
-
   xvfb-run \
     --server-num=$XDISPLAY \
     --auth-file=$XAUTHORITY \
@@ -106,6 +101,15 @@ run_x11vnc() {
 
 update() {
   sudo apt-get -y update
+}
+
+install_frontend() {
+  cd $FRONTEND_SOURCE && \
+  git clone https://github.com/alexjball/share-space.git && \
+  cd share-space && \
+  npm install && \
+  cd client && \
+  npm install
 }
 
 install_gui_deps() {
@@ -258,9 +262,11 @@ CMDS=(install_node \
       build_ffmpeg \
       stream_test \
       screen_capture_stream_test \
-      gui_up \
-      gui_down \
-      gui_status \
+      stack_up \
+      stack_down \
+      stack_status \
+      install_frontend \
+      run_frontend \
       help)
 
 prog_name=$0

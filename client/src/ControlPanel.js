@@ -8,12 +8,9 @@ export default class ControlPanel extends Component {
   constructor(props) {
     super(props);
 
-    let host = (window.origin || "").match(/\/\/([A-z0-9.]+):?/);
-    host = host ? host[1] : "localhost";
-
     this.state = {
       open: !!props.initiallyOpen,
-      spaceUrl: `${host}:3001`
+      spaceUrl: process.env.REACT_APP_DEFAULT_ROOM_SERVER || "localhost:3001"
     };
     this.clickId = 0;
   }
@@ -25,6 +22,7 @@ export default class ControlPanel extends Component {
         <div
           className={`control-panel center ${this.state.open ? "" : "hidden"}`}
         >
+          <div className="item">Room server:</div>
           <input
             className="item"
             type="text"
