@@ -55,7 +55,8 @@ export default class WebsocketRoom extends Component {
         console.log("no sourceBuffer yet");
       }
       this.setState({
-        lastMessageTime: performance.now()
+        lastMessageTime: performance.now(),
+        averageBitrate: this.averageBitrate
       });
     };
 
@@ -76,7 +77,7 @@ export default class WebsocketRoom extends Component {
     const now = performance.now();
     this.perfInfo = this.perfInfo.filter(i => now - i.time < 5000);
     this.perfInfo.push({ time: now, length: data.byteLength });
-    const avgBitrate =
+    this.averageBitrate =
       (1e-3 * this.perfInfo.map(i => i.length).reduce((a, b) => a + b, 0)) /
       this.perfInfo.length;
 
@@ -92,7 +93,9 @@ export default class WebsocketRoom extends Component {
       }. Available seek ahead: ${(video.seekable.length
         ? video.seekable.end(0)
         : 0) -
-        video.currentTime}. Buffered ranges: ${bufferedRanges}. Avg bitrate: ${avgBitrate}k/s.`
+        video.currentTime}. Buffered ranges: ${bufferedRanges}. Avg bitrate: ${
+        this.averageBitrate
+      }k/s.`
     );
   }
 
@@ -174,9 +177,14 @@ export default class WebsocketRoom extends Component {
   render() {
     return (
       <div className="room">
-        <div>{`spaceUrl: ${this.props.spaceUrl}`}</div>
+        <div>{`Room server: ${this.props.spaceUrl}`}</div>
         <div>{`status: ${this.state.status}`}</div>
-        <div>{`latest message time: ${this.state.lastMessageTime}`}</div>
+        <div>{`latest message time: ${Number(
+          1e-3 * this.state.lastMessageTime
+        ).toFixed(3)} s`}</div>
+        <div>{`average stream bitrate: ${Number(
+          this.state.averageBitrate
+        ).toFixed(1)} kb/s`}</div>
         <Clock />
         <video autoPlay={true} ref={this.videoRef} className="video" />
       </div>
@@ -207,9 +215,16 @@ class Clock extends Component {
     }
   }
 
+  timeDigit(x) {
+    const s = String(x);
+    return s.length === 1 ? `0${s}` : s;
+  }
+
   render() {
     const now = this.state.now,
-      theTime = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+      theTime = `${this.timeDigit(now.getHours())}:${this.timeDigit(
+        now.getMinutes()
+      )}:${this.timeDigit(now.getSeconds())}`;
     return <div>Current time: {theTime}</div>;
   }
 }
