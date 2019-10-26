@@ -54,12 +54,12 @@ export default class ControlPanel extends Component {
             Connect
           </button>
         </div>
-        <div className="center">
+        {/* <div className="center">
           <div
             className="control-handle"
             onClick={() => this.setState(state => ({ open: !state.open }))}
           />
-        </div>
+        </div> */}
       </div>
     );
   }
