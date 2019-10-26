@@ -50,9 +50,9 @@ _kill() {
 
   for pid in ${PIDS[*]}; do
     [ -d "/proc/$pid" ] && echo "Killing $1 with PID $pid"
-    kill $pid 2&>1 /dev/null
+    kill $pid &> /dev/null
     timeout 3s tail --pid=$pid -f /dev/null
-    kill -KILL $pid 2&>1 /dev/null
+    kill -KILL $pid &> /dev/null
   done
 }
 
