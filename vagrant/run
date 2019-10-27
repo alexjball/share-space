@@ -21,7 +21,7 @@ FRAMERATE=30
 
 RUN=$PROJECT_ROOT/vagrant/run
 
-FRONTEND_SOURCE=~/dev/share-space
+FRONTEND_SOURCE=$PROJECT_ROOT
 
 NOVNC_SOURCE=$PROJECT_ROOT/noVNC
 NOVNC_PROXY_PORT=6080
@@ -68,10 +68,7 @@ stack_status() {
 stack_up() {
   vagrant/run run_Xvfb &
   vagrant/run run_x11vnc &
-  vagrant/run \
-    screen_capture_stream_test \
-    unix://$FRONTEND_SOURCE/build/server/share-space-info-sink.sock \
-    unix://$FRONTEND_SOURCE/build/server/share-space-media-sink.sock &
+  vagrant/run screen_capture_stream_test & \
   vagrant/run run_frontend &
 }
 

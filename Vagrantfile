@@ -4,7 +4,7 @@
 # The directory that the project is mounted to in the guest.
 # This is set to $PROJECT_ROOT in shells, and should be used
 # instead of hardcoding the mount point. 
-$projectRoot = "/share-space"
+$projectRoot = "~/dev/share-space"
 
 Vagrant.configure("2") do |config|
   config.vm.box = "hashicorp/bionic64"
@@ -27,7 +27,7 @@ Vagrant.configure("2") do |config|
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
-  config.vm.network "public_network"
+  config.vm.network "private_network", ip: "172.28.128.10"
   config.vm.hostname = "share-space"
 
   # Create a public network, which generally matched to bridged network.
@@ -35,7 +35,6 @@ Vagrant.configure("2") do |config|
   # your network.
   # config.vm.network "public_network"
 
-  config.vm.synced_folder ".", $projectRoot
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
   # Provider-specific configuration so you can fine-tune various
