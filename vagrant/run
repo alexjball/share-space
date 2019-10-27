@@ -297,6 +297,7 @@ CMDS=(install_node \
       install_frontend \
       run_frontend \
       run_noVNC_proxy \
+      start_nfs \
       help)
 
 prog_name=$0
