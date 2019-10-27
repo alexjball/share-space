@@ -63,6 +63,8 @@ stack_status() {
   ps -ef | grep -i -E '(xvfb|xorg|xserver|node|ffmpeg|websockify)'
 }
 
+# Env flag configuration:
+# REACT_APP_DEFAULT_ROOM_SERVER: room server URL to populate in the control panel
 stack_up() {
   vagrant/run run_Xvfb &
   vagrant/run run_x11vnc &
@@ -71,6 +73,16 @@ stack_up() {
     unix://$FRONTEND_SOURCE/build/server/share-space-info-sink.sock \
     unix://$FRONTEND_SOURCE/build/server/share-space-media-sink.sock &
   vagrant/run run_frontend &
+}
+
+# Env flag configuration:
+# REACT_APP_VNC_SERVER: Link to start a vnc session with the room.
+# Ex: In development deployment, expose frontend server and stream
+# websocket server publicly over https 443/80, expose noVNC access to 
+# the local network at 8060, link to local access in the public site.
+stack_up_dev() {
+  stack_up
+  vagrant/run run_noVNC_proxy &
 }
 
 stack_down() {
@@ -277,6 +289,7 @@ CMDS=(install_node \
       stream_test \
       screen_capture_stream_test \
       stack_up \
+      stack_up_dev \
       stack_down \
       stack_status \
       install_frontend \

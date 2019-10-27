@@ -53,6 +53,14 @@ export default class ControlPanel extends Component {
           >
             Connect
           </button>
+          {process.env.REACT_APP_VNC_SERVER && (
+            <button
+              className="item"
+              onClick={() => window.open(process.env.REACT_APP_VNC_SERVER)}
+            >
+              Open VNC
+            </button>
+          )}
         </div>
         {/* <div className="center">
           <div
