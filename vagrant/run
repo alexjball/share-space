@@ -35,6 +35,11 @@ INFO_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-info-sink.sock
 
 ### Implementations
 
+start_nfs() {
+  sudo echo "/home/vagrant/dev/share-space *(rw,sync,no_root_squash)" > /etc/exports
+  sudo systemctl restart nfs-kernel-server
+}
+
 install_node() {
   if [ -z $(command -v nvm) ]; then
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash || echo "Error installing nvm"; exit 1
