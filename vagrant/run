@@ -110,7 +110,7 @@ run_x11vnc() {
   x11vnc \
     -auth $XAUTHORITY \
     -display :$XDISPLAY \
-    -localhost
+    -localhost \
     -nevershared \
     -loop \
     -forever 
