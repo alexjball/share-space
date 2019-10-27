@@ -23,6 +23,9 @@ RUN=$PROJECT_ROOT/vagrant/run
 
 FRONTEND_SOURCE=~/dev/share-space
 
+NOVNC_SOURCE=$PROJECT_ROOT/noVNC
+NOVNC_PROXY_PORT=6080
+
 FFMPEG_SOURCE=$PROJECT_ROOT/ffmpeg
 FFMPEG_BUILD=$PROJECT_ROOT/build/ffmpeg
 FFMPEG_INSTALL=$FFMPEG_BUILD/install
@@ -57,7 +60,7 @@ _kill() {
 }
 
 stack_status() {
-  ps -e | grep -i -E '(x|node|ffmpeg)'
+  ps -ef | grep -i -E '(xvfb|xorg|xserver|node|ffmpeg|websockify)'
 }
 
 stack_up() {
@@ -75,6 +78,7 @@ stack_down() {
   _kill Xvfb
   _kill ffmpeg
   _kill node
+  _kill '-f websockify'
 }
 
 run_frontend() {
@@ -94,9 +98,19 @@ run_x11vnc() {
   x11vnc \
     -auth $XAUTHORITY \
     -display :$XDISPLAY \
+    -localhost
     -nevershared \
     -loop \
     -forever 
+}
+
+run_noVNC_proxy() {
+  # Proxies websocket traffic to localhost-accessible vnc server
+  # The script will print a url at which the vnc server can be accessed.
+  # The URL should NOT be publicly accessible, as the vnc access is not 
+  # secured. This is useful for local access/ssh port forwarding.
+  cd $NOVNC_SOURCE
+  ./utils/launch.sh --listen $NOVNC_PROXY_PORT --vnc localhost:5900
 }
 
 update() {
@@ -267,6 +281,7 @@ CMDS=(install_node \
       stack_status \
       install_frontend \
       run_frontend \
+      run_noVNC_proxy \
       help)
 
 prog_name=$0
