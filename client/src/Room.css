@@ -21,3 +21,10 @@
   min-width: 100px;
   min-height: 100px;
 }
+
+.video-error {
+  margin: 5px;
+  padding: 15px;
+  background: tomato;
+  border-radius: 10px;
+}

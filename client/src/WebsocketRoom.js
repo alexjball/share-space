@@ -56,7 +56,8 @@ export default class WebsocketRoom extends Component {
       }
       this.setState({
         lastMessageTime: performance.now(),
-        averageBitrate: this.averageBitrate
+        averageBitrate: this.averageBitrate,
+        videoError: this.videoRef.current.error
       });
     };
 
@@ -64,6 +65,7 @@ export default class WebsocketRoom extends Component {
     videoSource.addEventListener("sourceopen", () => {
       this.sourceBuffer = videoSource.addSourceBuffer(mimeType);
       this.sourceBuffer.onupdate = () => this.updateBuffer();
+      this.sourceBuffer.onerror = () => (this.sourceBufferErrored = true);
     });
 
     this.videoRef.current.src = URL.createObjectURL(videoSource);
@@ -71,7 +73,7 @@ export default class WebsocketRoom extends Component {
 
   logPlayback(video, data) {
     if (video.error) {
-      console.error(this.videoRef.current.error);
+      console.warn(video.error);
     }
 
     const now = performance.now();
@@ -99,18 +101,11 @@ export default class WebsocketRoom extends Component {
     );
   }
 
-  tryAppendBuffer = () => {
-    if (this.sourceBuffer.updating) {
-      console.warn("sourcebuffer is updating, not appending");
-    } else {
-      const buffer = this.pendingBuffers.shift();
-      if (buffer) {
-        this.sourceBuffer.appendBuffer(buffer);
-      }
-    }
-  };
-
   updateBuffer = newData => {
+    if (this.sourceBufferErrored) {
+      return;
+    }
+
     if (newData) {
       this.pendingBuffers.push(newData);
     }
@@ -174,7 +169,31 @@ export default class WebsocketRoom extends Component {
     }
   }
 
+  mediaErrorLog(mediaError) {
+    const errorCodes = {
+      [MediaError.MEDIA_ERR_ABORTED]: "MEDIA_ERR_ABORTED",
+      [MediaError.MEDIA_ERR_DECODE]: "MEDIA_ERR_DECODE",
+      [MediaError.MEDIA_ERR_NETWORK]: "MEDIA_ERR_NETWORK",
+      [MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED]: "MEDIA_ERR_SRC_NOT_SUPPORTED"
+    };
+    const errorS = errorCodes[mediaError.code] || `UNKNOWN: ${mediaError.code}`;
+    return { code: errorS, message: mediaError.message };
+  }
+
   render() {
+    const videoError = this.state.videoError;
+    let videoErrorLog = null;
+    if (videoError) {
+      const m = this.mediaErrorLog(videoError);
+      videoErrorLog = (
+        <div className="video-error">
+          <div>Error loading video stream</div>
+          <div>Code: {" " + m.code}</div>
+          <div>Message: {" " + m.message}</div>
+        </div>
+      );
+    }
+
     return (
       <div className="room">
         <div>{`Room server: ${this.props.spaceUrl}`}</div>
@@ -186,6 +205,7 @@ export default class WebsocketRoom extends Component {
           this.state.averageBitrate
         ).toFixed(1)} kb/s`}</div>
         <Clock />
+        {videoErrorLog}
         <video autoPlay={true} ref={this.videoRef} className="video" />
       </div>
     );
