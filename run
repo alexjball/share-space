@@ -38,10 +38,13 @@ INFO_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-info-sink.sock
 install_node() {
   if [ -z $(command -v nvm) ]; then
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash || echo "Error installing nvm"; exit 1
+    echo $PATH
     source ~/.bashrc
+    echo $PATH
     [ -n $(command -v nvm) ] || echo "Can't find nvm after installing"; exit 1
   fi
 
+echo $PATH
   if [ -z $(which node) -o $(node -v) != $NODE_VERSION ]; then
     nvm install $NODE_VERSION || echo "Error installing node $NODE_VERSION"; exit 1
     [ $(node -v) == $NODE_VERSION ] || echo "Wrong node version after installing"; exit 1
