@@ -93,7 +93,7 @@ stack-install() {
 
 stack-build() {
   require_installed
-  # run_cmd build-ffmpeg
+  run_cmd build-ffmpeg
   run_cmd build-frontend
 }
 
@@ -198,7 +198,6 @@ install-nfs() {
 ## Build
 
 build-frontend() {
-  echo $PATH
   (npm install && \
       cd client && \
       npm install) || \
