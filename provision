@@ -1,0 +1,22 @@
+#!/bin/bash
+
+[ -n "$PROJECT_ROOT" ] || echo "PROJECT_ROOT env must be set"; exit 1
+
+echo "source $PROJECT_ROOT/vagrant/base_env $PROJECT_ROOT" >> ~/.bashrc || \
+  quit "Couldn't update bashrc"
+
+# Install dev dependencies
+
+cd $PROJECT_ROOT/vagrant
+
+echo "Installing dependencies"
+sudo apt-get -y update && \
+  ./run install_node && \
+  ./run install_ffmpeg_deps && \
+  ./run install_gui_deps
+
+echo "Building stack"
+./run install_frontend && \
+  ./run build_ffmpeg
+
+echo "Finished provisioning"

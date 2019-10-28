@@ -35,11 +35,6 @@ INFO_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-info-sink.sock
 
 ### Implementations
 
-start_nfs() {
-  sudo echo "/home/vagrant/dev/share-space *(rw,sync,no_root_squash)" > /etc/exports
-  sudo systemctl restart nfs-kernel-server
-}
-
 install_node() {
   if [ -z $(command -v nvm) ]; then
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash || echo "Error installing nvm"; exit 1
@@ -51,6 +46,77 @@ install_node() {
     nvm install $NODE_VERSION || echo "Error installing node $NODE_VERSION"; exit 1
     [ $(node -v) == $NODE_VERSION ] || echo "Wrong node version after installing"; exit 1
   fi
+}
+
+install_frontend() {
+  cd $FRONTEND_SOURCE && \
+  git clone https://github.com/alexjball/share-space.git && \
+  cd share-space && \
+  npm install && \
+  cd client && \
+  npm install
+}
+
+install_gui_deps() {
+  # TODO: Figure out which desktop environment and GUI apps to install
+  # TODO: Figure out how to configure the desktop environment for an X server
+  # TODO: Add a command to start and stop an X session
+  # TODO: Eventually add a command to start and stop an X session, ffmpeg stream, and room server together.
+  # Try xvfb-run --server-args="-screen 0 1024x768x24" ico -faces
+  # Xvfb is the X server plus a framebuffer. A display manager provides a GUI around sessions and windows
+  # managers. We don't need that since we're starting sessions on server startup. A session manager 
+  # initializes programs in a graphical login session, so this is where we configure the web browser to open.
+  # A window manager provides the in-session GUI around program windows; we should use a simple floating
+  # window manager.
+  # X clients (which is effectively what x11grab is) use the display number to resolve the local socket to
+  # use to connect to the X server. They also send an auth key, which is stored in an Xauthority file, the
+  # path to which is set to $XAUTHORITY before initializing a session. Since no one else is accessing the
+  # server, it may be OK to disable auth. If not, x11grab will need access to the key, so might need to 
+  # set XAUTHORITY in a shell above x11grab and the X server.
+  sudo apt-get -y install \
+    xvfb \
+    x11vnc
+    # cinnamon-core \
+    # xinit \
+    # dbus-x11 \
+    # nfs-kernel-server \
+    # firefox (doesn't seem to support all video providers with DRM enabled)
+    # https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    # pavucontrol
+    # TODO: Better cursor, may be x11vnc
+
+  # Prevent lightdm from running
+  sudo systemctl disable display-manager.service
+}
+
+install_ffmpeg_deps() {
+  sudo apt-get -y install \
+    autoconf \
+    automake \
+    build-essential \
+    cmake \
+    git-core \
+    libass-dev \
+    libfreetype6-dev \
+    libsdl2-dev \
+    libtool \
+    libva-dev \
+    libvdpau-dev \
+    libvorbis-dev \
+    libxcb1-dev \
+    libxcb-shm0-dev \
+    libxcb-xfixes0-dev \
+    pkg-config \
+    texinfo \
+    zlib1g-dev \
+    libx264-dev \
+    libvpx-dev \
+    libopus-dev
+}
+
+start_nfs() {
+  sudo echo "$PROJECT_ROOT *(rw,sync,no_root_squash)" > /etc/exports
+  sudo systemctl restart nfs-kernel-server
 }
 
 _kill() {
@@ -124,76 +190,6 @@ run_noVNC_proxy() {
   # secured. This is useful for local access/ssh port forwarding.
   cd $NOVNC_SOURCE
   ./utils/launch.sh --listen $NOVNC_PROXY_PORT --vnc localhost:5900
-}
-
-update() {
-  sudo apt-get -y update
-}
-
-install_frontend() {
-  cd $FRONTEND_SOURCE && \
-  git clone https://github.com/alexjball/share-space.git && \
-  cd share-space && \
-  npm install && \
-  cd client && \
-  npm install
-}
-
-install_gui_deps() {
-  # TODO: Figure out which desktop environment and GUI apps to install
-  # TODO: Figure out how to configure the desktop environment for an X server
-  # TODO: Add a command to start and stop an X session
-  # TODO: Eventually add a command to start and stop an X session, ffmpeg stream, and room server together.
-  # Try xvfb-run --server-args="-screen 0 1024x768x24" ico -faces
-  # Xvfb is the X server plus a framebuffer. A display manager provides a GUI around sessions and windows
-  # managers. We don't need that since we're starting sessions on server startup. A session manager 
-  # initializes programs in a graphical login session, so this is where we configure the web browser to open.
-  # A window manager provides the in-session GUI around program windows; we should use a simple floating
-  # window manager.
-  # X clients (which is effectively what x11grab is) use the display number to resolve the local socket to
-  # use to connect to the X server. They also send an auth key, which is stored in an Xauthority file, the
-  # path to which is set to $XAUTHORITY before initializing a session. Since no one else is accessing the
-  # server, it may be OK to disable auth. If not, x11grab will need access to the key, so might need to 
-  # set XAUTHORITY in a shell above x11grab and the X server.
-  sudo apt-get -y install \
-    xvfb \
-    x11vnc
-    # cinnamon-core \
-    # xinit \
-    # dbus-x11 \
-    # nfs-kernel-server \
-    # firefox (doesn't seem to support all video providers with DRM enabled)
-    # https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-    # pavucontrol
-    # TODO: Better cursor, may be x11vnc
-
-  # Prevent lightdm from running
-  sudo systemctl disable display-manager.service
-}
-
-install_ffmpeg_deps() {
-  sudo apt-get -y install \
-    autoconf \
-    automake \
-    build-essential \
-    cmake \
-    git-core \
-    libass-dev \
-    libfreetype6-dev \
-    libsdl2-dev \
-    libtool \
-    libva-dev \
-    libvdpau-dev \
-    libvorbis-dev \
-    libxcb1-dev \
-    libxcb-shm0-dev \
-    libxcb-xfixes0-dev \
-    pkg-config \
-    texinfo \
-    zlib1g-dev \
-    libx264-dev \
-    libvpx-dev \
-    libopus-dev
 }
 
 configure_ffmpeg() {

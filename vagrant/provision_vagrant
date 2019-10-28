@@ -1,6 +1,0 @@
-#!/usr/bash
-
-echo "source $PROJECT_ROOT/vagrant/base_env $PROJECT_ROOT" >> ~/.bashrc
-
-# Add to exports
-# sudo echo "/home/vagrant/dev/share-space *(rw,sync,no_root_squash)" > /etc/exports
