@@ -1,8 +1,13 @@
 #!/bin/bash
 
 quit() {
-  echo $1
+  echo "quitting" > quitting
+  echo $1 > quitting.why
   exit 1
+}
+
+run_cmd() {
+  $PROJECT_ROOT/run $1 || quit "Error running $1"
 }
 
 PROJECT_ROOT=$(dirname $(realpath $0))
@@ -15,16 +20,15 @@ echo "source $PROJECT_ROOT/base_env $PROJECT_ROOT" >> ~/.bashrc || \
 # Install dev dependencies
 
 echo "Installing dependencies"
-(sudo apt-get -y update && \
-    ./run install_node && \
-    ./run install_ffmpeg_deps && \
-    ./run install_gui_deps && \
-    ./run start_nfs) || \
-  quit "Couldn't install dependencies"
+sudo apt-get -y update
+    run_cmd install_node 
+    run_cmd install_ffmpeg_deps
+    run_cmd install_gui_deps
+    run_cmd start_nfs
 
 echo "Building stack"
-(./run install_frontend && \
-    ./run build_ffmpeg) || \
-  quit "Couldn't build stack"
+# (run_cmd install_frontend && \
+#     run_cmd build_ffmpeg) || \
+#   quit "Couldn't build stack"
 
 echo "Finished installing"

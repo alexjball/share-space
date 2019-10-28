@@ -36,16 +36,14 @@ INFO_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-info-sink.sock
 ### Implementations
 
 install_node() {
-  if [ -z $(command -v nvm) ]; then
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash || echo "Error installing nvm"; exit 1
-    source ~/.bashrc
-    [ -n $(command -v nvm) ] || echo "Can't find nvm after installing"; exit 1
-  fi
-
-  if [ -z $(which node) -o $(node -v) != $NODE_VERSION ]; then
-    nvm install $NODE_VERSION || echo "Error installing node $NODE_VERSION"; exit 1
-    [ $(node -v) == $NODE_VERSION ] || echo "Wrong node version after installing"; exit 1
-  fi
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash || echo "Error installing nvm"; exit 1
+  
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"  # This loads nvm
+  [ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+  
+  nvm install $NODE_VERSION || echo "Error installing node $NODE_VERSION"; exit 1
+  echo "asdfasdfasdf"
 }
 
 install_frontend() {
