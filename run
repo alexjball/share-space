@@ -19,7 +19,7 @@ SCREEN_WIDTH=1280
 SCREEN_HEIGHT=720
 FRAMERATE=30
 
-RUN=$PROJECT_ROOT/vagrant/run
+RUN=$PROJECT_ROOT/run
 
 FRONTEND_SOURCE=$PROJECT_ROOT
 
@@ -76,11 +76,12 @@ install_gui_deps() {
   sudo apt-get -y install \
     xvfb \
     x11vnc
-    # cinnamon-core \
-    # xinit \
-    # dbus-x11 \
-    # nfs-kernel-server \
-    # firefox (doesn't seem to support all video providers with DRM enabled)
+    cinnamon-core \
+    xinit \
+    dbus-x11 \
+    nfs-kernel-server \
+    firefox
+    # (doesn't seem to support all video providers with DRM enabled)
     # https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     # pavucontrol
     # TODO: Better cursor, may be x11vnc
@@ -137,10 +138,10 @@ stack_status() {
 # Env flag configuration:
 # REACT_APP_DEFAULT_ROOM_SERVER: room server URL to populate in the control panel
 stack_up() {
-  vagrant/run run_Xvfb &
-  vagrant/run run_x11vnc &
-  vagrant/run screen_capture_stream_test & \
-  vagrant/run run_frontend &
+  $RUN run_Xvfb &
+  $RUN run_x11vnc &
+  $RUN screen_capture_stream_test & \
+  $RUN run_frontend &
 }
 
 # Env flag configuration:
@@ -150,7 +151,7 @@ stack_up() {
 # the local network at 8060, link to local access in the public site.
 stack_up_dev() {
   stack_up
-  vagrant/run run_noVNC_proxy &
+  $RUN run_noVNC_proxy &
 }
 
 stack_down() {
