@@ -101,9 +101,13 @@ stack-up() {
   require_installed
   log_cmd run-Xvfb &
   log_cmd run-x11vnc &
-  log_cmd run-screencap-stream &
   log_cmd run-frontend &
   log_cmd run-noVNC-proxy &
+
+  echo "Pausing before starting screencap..."
+  sleep 5
+
+  log_cmd run-screencap-stream &
 }
 
 stack-down() {
@@ -142,11 +146,11 @@ install-gui() {
       dbus-x11 \
       firefox || \
     quit "Couldn't install GUI"
-    
-  if [ $(systemctl is-active display-manager) == "active" ]; then
-    sudo systemctl disable display-manager.service || \
-      quit "Couldn't disable display manager"
-  fi
+  
+  local X=$(systemctl is-active display-manager)
+  echo "systemctl is-active display-manager: $X"
+  sudo systemctl disable display-manager.service || \
+    quit "Couldn't disable display manager"
 }
 
 install-ffmpeg-deps() {
