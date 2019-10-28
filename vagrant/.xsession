@@ -1,1 +1,0 @@
-xterm -geometry 70x20-0+0 -e htop &
