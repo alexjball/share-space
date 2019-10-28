@@ -12,6 +12,8 @@ run_cmd() {
 
 PROJECT_ROOT=$(dirname $(realpath $0))
 
+echo "project root"
+echo $PROJECT_ROOT
 cd $PROJECT_ROOT
 
 echo "source $PROJECT_ROOT/base_env $PROJECT_ROOT" >> ~/.bashrc || \
