@@ -147,10 +147,10 @@ install-gui() {
       firefox || \
     quit "Couldn't install GUI"
   
-  local X=$(systemctl is-active display-manager)
-  echo "systemctl is-active display-manager: $X"
-  sudo systemctl disable display-manager.service || \
-    quit "Couldn't disable display manager"
+  if [ $(systemctl list-unit-files "display-manager.service" | wc -l) -gt 3 ]; then
+    sudo systemctl disable display-manager.service || \
+      quit "Couldn't disable display manager"
+  fi
 }
 
 install-ffmpeg-deps() {
