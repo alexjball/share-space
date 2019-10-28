@@ -36,8 +36,9 @@
   },
   "nodemonConfig": {
     "ignore": [
-      "ffmpeg/*",
-      "client/*"
+      "ffmpeg/",
+      "client/",
+      "noVNC/"
     ]
   },
   "jest": {

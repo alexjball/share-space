@@ -1,0 +1,36 @@
+#!/bin/bash
+
+quit() {
+  echo $1
+  exit 1
+}
+
+run_cmd() {
+  $PROJECT_ROOT/run $1 || quit "Error running $1"
+}
+
+source "$(dirname $(realpath $0))/.envrc"
+
+if [ -a "build/installed" ]; then
+  echo "build/installed indicates an active install"
+  echo "$(cat build/installed)"
+  exit 1
+fi
+
+RC_SETUP="source $PROJECT_ROOT/.envrc"
+grep -q "$RC_SETUP" ~/.bashrc || \
+  echo $RC_SETUP >> ~/.bashrc || \
+  quit "Couldn't update bashrc"
+
+# Install dev dependencies
+
+echo "Installing dependencies"
+
+sudo apt-get -y update || quit "apt update failed"
+run_cmd install_node 
+run_cmd install_ffmpeg_deps
+run_cmd install_gui_deps
+run_cmd install_nfs
+
+echo "Install time: $(date)" > build/installed
+echo "Finished installing"
