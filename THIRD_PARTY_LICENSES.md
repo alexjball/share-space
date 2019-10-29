@@ -28,5 +28,9 @@ WebRTC connection is based on the `video-compositing` example.
 https://github.com/node-webrtc/node-webrtc-examples
 
 # FFmpeg
+https://ffmpeg.org/
+https://github.com/FFmpeg/FFmpeg/
 
-# https://github.com/jrottenberg/ffmpeg
+# noVNC
+https://novnc.com/info.html
+https://github.com/noVNC/noVNC/
