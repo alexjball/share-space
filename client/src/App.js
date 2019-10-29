@@ -24,12 +24,12 @@ export default class App extends Component {
     switch (this.state.roomType) {
       case "WebRTC":
         room = (
-          <WebRtcRoom spaceUrl={this.state.spaceUrl} key={this.state.key} />
+          <WebRtcRoom roomServer={this.state.roomServer} key={this.state.key} />
         );
         break;
       case "Websocket":
         room = (
-          <WebsocketRoom spaceUrl={this.state.spaceUrl} key={this.state.key} />
+          <WebsocketRoom roomServer={this.state.roomServer} key={this.state.key} />
         );
         break;
       default:
@@ -39,8 +39,8 @@ export default class App extends Component {
       <div className="App">
         <ControlPanel
           initiallyOpen={true}
-          connect={(spaceUrl, roomType, key) =>
-            this.setState({ spaceUrl, roomType, key })
+          connect={(roomServer, roomType, key) =>
+            this.setState({ roomServer, roomType, key })
           }
         />
         {room}

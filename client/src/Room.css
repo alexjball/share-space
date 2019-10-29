@@ -9,15 +9,24 @@
   flex: auto;
 }
 
-.video-container {
+.webrtc-video-container {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
   width: 100%;
 }
 
-.video {
+.webrtc-video {
+  position: absolute;
+  left: 0;
+  top: 0;
   margin: 10px;
+  min-width: 100px;
+  min-height: 100px;
+}
+
+.video {
+  background-color: grey;
   min-width: 100px;
   min-height: 100px;
 }
@@ -27,4 +36,42 @@
   padding: 15px;
   background: tomato;
   border-radius: 10px;
+}
+
+.control-overlay.visible {
+  opacity: 1;
+}
+
+.control-overlay.invisible {
+  opacity: 0;
+}
+
+.control-overlay canvas {
+  cursor: crosshair !important;
+}
+
+.control-overlay-container {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 0;
+}
+
+.control-overlay-container.connected {
+  left: -2px;
+  top: -2px;
+  border: 2px solid limegreen;
+  border-radius: 2px;
+}
+
+.control-overlay-container:hover {
+  left: -4px;
+  top: -4px;
+  border: 4px solid tomato;
+  border-radius: 4px;
+}
+
+.desktop {
+  position: relative;
+  margin: 20px;
 }

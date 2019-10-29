@@ -123,7 +123,7 @@ stack-down() {
 }
 
 stack-status() {
-  ps -ef | grep -i -E '(xvfb|xorg|xserver|node|ffmpeg|websockify)'
+  ps -ef | grep -i -E '(x11vnc|xvfb|xorg|xserver|node|ffmpeg|websockify)'
 }
 
 ## Install
@@ -249,6 +249,7 @@ run-x11vnc() {
   x11vnc \
     -auth $XAUTHORITY \
     -display :$XDISPLAY \
+    -nofb \
     -nevershared \
     -loop \
     -forever 

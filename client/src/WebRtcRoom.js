@@ -106,9 +106,9 @@ export default class WebRtcRoom extends Component {
 
   componentDidMount() {
     // open webRTC connection
-    if (this.props.spaceUrl) {
+    if (this.props.roomServer) {
       this.connectionClient = new ConnectionClient({
-        host: `http://${this.props.spaceUrl}`,
+        host: `http://${this.props.roomServer}`,
         prefix: "/rtc"
       });
     }
@@ -180,19 +180,19 @@ export default class WebRtcRoom extends Component {
   render() {
     return (
       <div className="room">
-        <div className="video-container">
+        <div className="webrtc-video-container">
           <video
             loop={true}
             muted={true}
             ref={this.localVideoRef}
-            className="video"
+            className="webrtc-video"
             src="/assets/earth.mp4"
           />
           <video
             autoPlay={true}
             muted={true}
             ref={this.remoteVideoRef}
-            className="video"
+            className="webrtc-video"
           />
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>

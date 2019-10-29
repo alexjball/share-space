@@ -1,5 +1,7 @@
 import React, { Component } from "react";
 import "./Room.css";
+import RoomClient from "./RoomClient";
+import ControlOverlay from "./ControlOverlay";
 
 // Must match the video stream from the room server, as encoded by FFmpeg.
 const mimeType = 'video/webm; codecs="vp9,vorbis"';
@@ -7,10 +9,6 @@ const maxLag = 5,
   maxBufferSize = 20,
   playbackSlop = 1,
   bufferSlop = 5;
-
-const websocketProtocol = window.location.protocol.startsWith("https")
-  ? "wss"
-  : "ws";
 
 /**
  * The main interface to spaces, using a websocket.
@@ -30,13 +28,19 @@ export default class WebsocketRoom extends Component {
     if (!MediaSource.isTypeSupported(mimeType)) {
       throw Error(`MIME type ${mimeType} not supported`);
     }
+
+    this.roomClient = new RoomClient(
+      this.props.roomServer,
+      window.location.protocol.startsWith("https") ? "https" : "http"
+    );
   }
 
-  async connect() {
-    const ws = (this.ws = new WebSocket(
-      `${websocketProtocol}://${this.props.spaceUrl}/stream`
-    ));
-    ws.binaryType = "arraybuffer";
+  connectStream(roomClient) {
+    if (this.ws) {
+      throw Error("already running");
+    }
+
+    const ws = (this.ws = roomClient.openStream());
 
     ws.onopen = () => {
       this.setState({ status: "Connected" });
@@ -69,6 +73,18 @@ export default class WebsocketRoom extends Component {
     });
 
     this.videoRef.current.src = URL.createObjectURL(videoSource);
+  }
+
+  closeStream() {
+    if (!this.ws) {
+      throw Error("not running");
+    }
+    this.ws.onopen = null;
+    this.ws.onerror = null;
+    this.ws.onclose = null;
+    this.ws.onmessage = null;
+    this.ws.close();
+    this.ws = null;
   }
 
   logPlayback(video, data) {
@@ -154,19 +170,11 @@ export default class WebsocketRoom extends Component {
   };
 
   componentDidMount() {
-    if (this.props.spaceUrl) {
-      this.connect();
-    }
+    this.connectStream(this.roomClient);
   }
 
   componentWillUnmount() {
-    if (this.props.spaceUrl) {
-      this.ws.onopen = null;
-      this.ws.onerror = null;
-      this.ws.onclose = null;
-      this.ws.onmessage = null;
-      this.ws.close();
-    }
+    this.closeStream();
   }
 
   mediaErrorLog(mediaError) {
@@ -196,7 +204,7 @@ export default class WebsocketRoom extends Component {
 
     return (
       <div className="room">
-        <div>{`Room server: ${this.props.spaceUrl}`}</div>
+        <div>{`Room server: ${this.props.roomServer}`}</div>
         <div>{`status: ${this.state.status}`}</div>
         <div>{`latest message time: ${Number(
           1e-3 * this.state.lastMessageTime
@@ -206,7 +214,10 @@ export default class WebsocketRoom extends Component {
         ).toFixed(1)} kb/s`}</div>
         <Clock />
         {videoErrorLog}
-        <video autoPlay={true} ref={this.videoRef} className="video" />
+        <div className="desktop">
+          <video autoPlay={true} ref={this.videoRef} className="video" />
+          <ControlOverlay roomClient={this.roomClient} />
+        </div>
       </div>
     );
   }

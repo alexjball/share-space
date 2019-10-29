@@ -15,10 +15,12 @@ const server = app.listen(app.get("port"), () => {
   console.log(`Find the server at: http://localhost:${app.get("port")}/`); // eslint-disable-line no-console
 });
 
+// does request contain path? Does this affect paths other than the websocket ones?
 server.on("upgrade", (request, socket, head) => {
   if (streamingMediaServer.shouldHandle(request)) {
     streamingMediaServer.handleUpgrade(request, socket, head);
   } else {
+    console.log("Rejected upgrade request");
     socket.destroy();
   }
 });

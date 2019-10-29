@@ -10,7 +10,7 @@ export default class ControlPanel extends Component {
 
     this.state = {
       open: !!props.initiallyOpen,
-      spaceUrl: process.env.REACT_APP_DEFAULT_ROOM_SERVER || "localhost:3001"
+      roomServer: process.env.REACT_APP_DEFAULT_ROOM_SERVER || "localhost:3001"
     };
     this.clickId = 0;
   }
@@ -26,14 +26,14 @@ export default class ControlPanel extends Component {
           <input
             className="item"
             type="text"
-            value={this.state.spaceUrl}
-            onChange={e => this.setState({ spaceUrl: e.target.value })}
+            value={this.state.roomServer}
+            onChange={e => this.setState({ roomServer: e.target.value })}
           />
           {/* <button
             className="item"
             onClick={() =>
               connect(
-                this.state.spaceUrl,
+                this.state.roomServer,
                 "WebRTC",
                 this.clickId++
               )
@@ -45,7 +45,7 @@ export default class ControlPanel extends Component {
             className="item"
             onClick={() =>
               connect(
-                this.state.spaceUrl,
+                this.state.roomServer,
                 "Websocket",
                 this.clickId++
               )
