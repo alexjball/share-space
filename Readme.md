@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.com/alexjball/share-space.svg?branch=master)](https://travis-ci.com/alexjball/share-space)
 
+https://github.com/alexjball/share-space-host
+
 # Share Space
 
 Make it easy to share a computer remotely with others. Spend less time fiddling with gadgets and more time with people.
