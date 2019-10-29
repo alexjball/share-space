@@ -26,3 +26,4 @@ Features:
 - Implement third-party (chatbot automated) auth
 - Set up CD to Vagrant hub for the host project
 - Set up CI for the environment: test that stack works and that video streams
+- Set up a deploy configuration with static client files
