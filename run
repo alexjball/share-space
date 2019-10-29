@@ -26,6 +26,7 @@ INFO_SINK_SOCKET=$PROJECT_ROOT/build/server/share-space-info-sink.sock
 
 # Holds the last time the stack was installed successfully
 STACK_INSTALLED=$PROJECT_ROOT/build/stack/installed
+STACK_BUILT=$PROJECT_ROOT/build/stack/built
 
 ### Commands. All commands are dash-cased, everything else uses_underscores
 
@@ -95,6 +96,9 @@ stack-build() {
   require_installed
   run_cmd build-ffmpeg
   run_cmd build-frontend
+
+  echo "Build time: $(date)" > $STACK_BUILT
+  echo "Finished building"
 }
 
 stack-up() {
