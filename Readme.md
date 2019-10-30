@@ -29,3 +29,4 @@ Features:
 - Set up a deploy configuration with static client files
 - Fix Firefox compatibility
 - Optimize mobile layout
+- Create a new non-admin user to run the GUI
