@@ -80,45 +80,47 @@ export default class WebsocketRoom extends Component {
           this.state.averageBitrate
         ).toFixed(1)} kb/s`}</div>
         <Clock />
-        <div className="room-controls">
-          <button
-            disabled={!this.isStreamEnabled()}
-            onClick={this.disableStream}
-          >
-            Stop Video
-          </button>
-          <button onClick={this.enableStream}>
-            {this.isStreamEnabled() ? "Reset Video" : "Start Video"}
-          </button>
-          <button
-            disabled={this.isControlEnabled()}
-            onClick={this.enableControl}
-          >
-            Grab Remote
-          </button>
-          <button
-            disabled={!this.isControlEnabled()}
-            onClick={this.disableControl}
-          >
-            Drop Remote
-          </button>
-        </div>
         {this.state.authenticated && (
-          <div style={this._getDesktopSize()} className="desktop">
-            {this.isStreamEnabled() && (
-              <StreamingMediaSourceVideo
-                key={this.state.streamKey}
-                roomClient={this.roomClient}
-                playbackState={info => this.setState(info)}
-              />
-            )}
-            {this.isControlEnabled() && (
-              <ControlOverlay
-                key={this.state.controlKey}
-                roomClient={this.roomClient}
-              />
-            )}
-          </div>
+          <>
+            <div className="room-controls">
+              <button
+                disabled={!this.isStreamEnabled()}
+                onClick={this.disableStream}
+              >
+                Stop Video
+              </button>
+              <button onClick={this.enableStream}>
+                {this.isStreamEnabled() ? "Reset Video" : "Start Video"}
+              </button>
+              <button
+                disabled={this.isControlEnabled()}
+                onClick={this.enableControl}
+              >
+                Grab Remote
+              </button>
+              <button
+                disabled={!this.isControlEnabled()}
+                onClick={this.disableControl}
+              >
+                Drop Remote
+              </button>
+            </div>
+            <div style={this._getDesktopSize()} className="desktop">
+              {this.isStreamEnabled() && (
+                <StreamingMediaSourceVideo
+                  key={this.state.streamKey}
+                  roomClient={this.roomClient}
+                  playbackState={info => this.setState(info)}
+                />
+              )}
+              {this.isControlEnabled() && (
+                <ControlOverlay
+                  key={this.state.controlKey}
+                  roomClient={this.roomClient}
+                />
+              )}
+            </div>
+          </>
         )}
       </div>
     );
