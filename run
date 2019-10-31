@@ -253,7 +253,9 @@ build-ffmpeg() {
 ## Run
 
 run-frontend() {
-  npm start
+  REACT_APP_DESKTOP_WIDTH=$SCREEN_WIDTH \
+  REACT_APP_DESKTOP_HEIGHT=$SCREEN_HEIGHT \
+    npm start
 }
 
 run-Xvfb() {

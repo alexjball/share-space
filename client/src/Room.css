@@ -25,10 +25,14 @@
   min-height: 100px;
 }
 
+.desktop {
+  background-color: tomato;
+  position: relative;
+  margin: 20px;
+}
+
 .video {
-  background-color: grey;
-  min-width: 100px;
-  min-height: 100px;
+  position: absolute;
 }
 
 .video-error {
@@ -36,18 +40,6 @@
   padding: 15px;
   background: tomato;
   border-radius: 10px;
-}
-
-.control-overlay.visible {
-  opacity: 1;
-}
-
-.control-overlay.invisible {
-  opacity: 0;
-}
-
-.control-overlay canvas {
-  cursor: crosshair !important;
 }
 
 .control-overlay-container {
@@ -71,7 +63,14 @@
   border-radius: 4px;
 }
 
-.desktop {
-  position: relative;
-  margin: 20px;
+.control-overlay.visible {
+  opacity: 1;
+}
+
+.control-overlay.invisible {
+  opacity: 0;
+}
+
+.control-overlay canvas {
+  cursor: crosshair !important;
 }

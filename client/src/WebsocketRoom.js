@@ -15,7 +15,6 @@ export default class WebsocketRoom extends Component {
   constructor(props) {
     super(props);
     this.state = { status: "Authenticating" };
-
     this.roomClient = new RoomClient(
       this.props.roomServer,
       window.location.protocol.startsWith("https") ? "https" : "http"
@@ -31,7 +30,12 @@ export default class WebsocketRoom extends Component {
       );
   }
 
-  playbackInfoCallback = info => this.setState(info);
+  _getDesktopSize() {
+    return {
+      width: Number(process.env.REACT_APP_DESKTOP_WIDTH) || 1280,
+      height: Number(process.env.REACT_APP_DESKTOP_HEIGHT) || 720
+    };
+  }
 
   render() {
     return (
@@ -46,7 +50,10 @@ export default class WebsocketRoom extends Component {
         ).toFixed(1)} kb/s`}</div>
         <Clock />
         {this.state.authenticated && (
-          <div className="desktop">
+          <div
+            style={this._getDesktopSize()}
+            className="desktop"
+          >
             <StreamingMediaSourceVideo
               roomClient={this.roomClient}
               playbackState={info => this.setState(info)}
