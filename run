@@ -50,9 +50,11 @@ _kill() {
 
 RUN_TIME=$(date -Iseconds)
 LOG_DIR=$PROJECT_ROOT/build/stack/logs-$RUN_TIME
+LATEST_LOGS=$PROJECT_ROOT/build/stack/logs-latest
 log_cmd() {
   mkdir -p $LOG_DIR
-  ln -fs $LOG_DIR $PROJECT_ROOT/build/stack/logs-latest
+  rm -f $LATEST_LOGS
+  ln -fs $LOG_DIR $LATEST_LOGS
   $PROJECT_ROOT/run $@ &> $LOG_DIR/$1.log
 }
 
@@ -291,6 +293,7 @@ run-screencap-stream() {
   local INFO_URL=${1:-"unix://$INFO_SINK_SOCKET"}
 	local MEDIA_URL=${2:-"unix://$MEDIA_SINK_SOCKET"}
 
+  # The magic incantation
   ffmpeg \
     -v info \
     -f pulse \

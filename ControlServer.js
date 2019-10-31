@@ -24,16 +24,18 @@ module.exports = class ControlServer {
     proxy.on("connection", client => {
       if (this.client) {
         console.log("Existing control connection, closing it");
-        this.client.close("Breaking for new connection");
+        const goingAway = 1001;
+        this.client.close(goingAway, "Breaking for new connection");
       }
       client.on("close", () => console.log("control connection closed"));
       client.on("end", () => console.log("control connection ended"));
       client.on("error", error =>
         console.log("control connection errored", error)
       );
-      WebSocket.createWebSocketStream(client).pipe(
-        net.createConnection(this.vncPort, this.vncHost)
-      );
+      const clientStream = WebSocket.createWebSocketStream(client),
+        vncStream = net.createConnection(this.vncPort, this.vncHost);
+      clientStream.pipe(vncStream);
+      vncStream.pipe(clientStream);
       console.log("Connected");
       this.client = client;
     });
