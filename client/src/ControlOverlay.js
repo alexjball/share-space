@@ -15,12 +15,24 @@ export default class ControlOverlay extends Component {
       this.props.roomClient.getControlUrl()
     );
     this.rfb.showDotCursor = true;
-    this.rfbCreated(this.rfb);
+    this.rfbListeners = {
+      connect: () => this.setState({ connected: true }),
+      disconnect: () => this.setState({ connected: false }),
+      credentialsrequired: e => console.error("credentialsrequired", e),
+      desktopname: e => console.log("desktopname", e)
+    };
+    let event;
+    for (event in this.rfbListeners) {
+      this.rfb.addEventListener(event, this.rfbListeners[event]);
+    }
   }
 
   componentWillUnmount() {
-    this.rfbDestroyed(this.rfb);
     this.rfb.disconnect();
+    let event;
+    for (event in this.rfbListeners) {
+      this.rfb.removeEventListener(event, this.rfbListeners[event]);
+    }
   }
 
   render() {
@@ -32,17 +44,4 @@ export default class ControlOverlay extends Component {
       </div>
     );
   }
-
-  rfbCreated = rfb => {
-    rfb.addEventListener("connect", () => this.setState({ connected: true }));
-    rfb.addEventListener("disconnect", () =>
-      this.setState({ connected: false })
-    );
-    rfb.addEventListener("credentialsrequired", e =>
-      console.error("credentialsrequired", e)
-    );
-    rfb.addEventListener("desktopname", e => console.log("desktopname", e));
-  };
-
-  rfbDestroyed = rfb => {};
 }
