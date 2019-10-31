@@ -170,11 +170,17 @@ export default class WebsocketRoom extends Component {
   };
 
   componentDidMount() {
-    this.connectStream(this.roomClient);
+    // TODO: display login errors, delay both video and overlay until login succeeds.
+    this.roomClient
+      .logIn(this.props.roomCode)
+      .then(() => this.connectStream(this.roomClient))
+      .catch(reason => console.warn("Error logging in", reason));
   }
 
   componentWillUnmount() {
-    this.closeStream();
+    if (this.ws) {
+      this.closeStream();
+    }
   }
 
   mediaErrorLog(mediaError) {
@@ -216,7 +222,7 @@ export default class WebsocketRoom extends Component {
         {videoErrorLog}
         <div className="desktop">
           <video autoPlay={true} ref={this.videoRef} className="video" />
-          <ControlOverlay roomClient={this.roomClient} />
+          {/* <ControlOverlay roomClient={this.roomClient} /> */}
         </div>
       </div>
     );

@@ -2,7 +2,6 @@ import React, { Component } from "react";
 import "./App.css";
 import ControlPanel from "./ControlPanel.js";
 import WebsocketRoom from "./WebsocketRoom.js";
-import WebRtcRoom from "./WebRtcRoom.js";
 
 /**
  * Full-screen root component of the app.
@@ -21,26 +20,24 @@ export default class App extends Component {
 
   render() {
     let room;
-    switch (this.state.roomType) {
-      case "WebRTC":
-        room = (
-          <WebRtcRoom roomServer={this.state.roomServer} key={this.state.key} />
-        );
-        break;
-      case "Websocket":
-        room = (
-          <WebsocketRoom roomServer={this.state.roomServer} key={this.state.key} />
-        );
-        break;
-      default:
-        room = <div className="room"/>;
+    if (this.state.key !== undefined) {
+      room = (
+        <WebsocketRoom
+          roomServer={this.state.roomServer}
+          roomCode={this.state.roomCode}
+          key={this.state.key}
+        />
+      );
+    } else {
+      room = <div className="room" />;
     }
+
     return (
       <div className="App">
         <ControlPanel
           initiallyOpen={true}
-          connect={(roomServer, roomType, key) =>
-            this.setState({ roomServer, roomType, key })
+          connect={({ roomServer, roomCode, key }) =>
+            this.setState({ roomServer, roomCode, key })
           }
         />
         {room}

@@ -1,34 +1,57 @@
-const initWebRtc = require("./webrtc-server");
 const { StreamingMediaServer } = require("./StreamingMediaServer");
+const RoomCodeAuth = require("./RoomCodeAuth");
 const express = require("express");
-
+const http = require("http");
 const baseDir = require("path").dirname(require.resolve("./package.json"));
+var cors = require("cors");
 
-const app = express();
+const frontendPort = process.env.PORT || 3001,
+  app = express(),
+  frontend = http.createServer(app),
+  auth = new RoomCodeAuth(),
+  streamingMediaServer = new StreamingMediaServer({
+    streamingPath: "/stream",
+    mediaSinkPath: `${baseDir}/build/server/share-space-media-sink.sock`,
+    infoSinkPath: `${baseDir}/build/server/share-space-info-sink.sock`
+  });
 
+//// HTTP
+
+// Order of middleware matters.
+app.use(auth.middleware());
 app.use(express.json());
-app.set("port", process.env.PORT || 3001);
 
+// No-auth middleware
 app.use("/assets", express.static("assets"));
 
-const server = app.listen(app.get("port"), () => {
-  console.log(`Find the server at: http://localhost:${app.get("port")}/`); // eslint-disable-line no-console
+// Auth-required middleware
+app.use("/", auth.requireAuth());
+app.use("/", (req, res) => res.sendStatus(404));
+
+//// WebSocket
+
+frontend.on("upgrade", (request, socket, head) => {
+  auth.checkAuth(request, (err, user) => {
+    if (err) {
+      console.log("error authenticating", err);
+      socket.destroy();
+      return;
+    }
+    
+    console.log("upgrade authenticated", user);
+
+    if (streamingMediaServer.shouldHandle(request)) {
+      streamingMediaServer.handleUpgrade(request, socket, head);
+    } else {
+      console.log("Rejected upgrade request");
+      socket.destroy();
+    }
+  })
 });
 
-// does request contain path? Does this affect paths other than the websocket ones?
-server.on("upgrade", (request, socket, head) => {
-  if (streamingMediaServer.shouldHandle(request)) {
-    streamingMediaServer.handleUpgrade(request, socket, head);
-  } else {
-    console.log("Rejected upgrade request");
-    socket.destroy();
-  }
-});
+//// Listen
 
-const streamingMediaServer = new StreamingMediaServer({
-  streamingPath: "/stream",
-  mediaSinkPath: `${baseDir}/build/server/share-space-media-sink.sock`,
-  infoSinkPath: `${baseDir}/build/server/share-space-info-sink.sock`
-});
 streamingMediaServer.start();
-initWebRtc(app, "/rtc");
+frontend.listen(frontendPort, () => {
+  console.log(`Find the server at: http://localhost:${frontendPort}/`); // eslint-disable-line no-console
+});
