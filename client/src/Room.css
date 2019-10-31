@@ -25,10 +25,18 @@
   min-height: 100px;
 }
 
+.room-controls {
+  display: "inline-block";
+}
+
+.room-controls > button {
+  margin: 10px;
+  min-width: 100px;
+}
+
 .desktop {
   background-color: tomato;
   position: relative;
-  margin: 20px;
 }
 
 .video {

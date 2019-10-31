@@ -4,6 +4,9 @@ import RoomClient from "./RoomClient";
 import ControlOverlay from "./ControlOverlay";
 import StreamingMediaSourceVideo from "./StreamingMediaSourceVideo";
 
+const disabled = -1;
+let nextKey = 0;
+
 /**
  * The main interface to spaces, using a websocket.
  *
@@ -14,7 +17,11 @@ import StreamingMediaSourceVideo from "./StreamingMediaSourceVideo";
 export default class WebsocketRoom extends Component {
   constructor(props) {
     super(props);
-    this.state = { status: "Authenticating" };
+    this.state = {
+      status: "Authenticating",
+      streamKey: nextKey++,
+      controlKey: disabled
+    };
     this.roomClient = new RoomClient(
       this.props.roomServer,
       window.location.protocol.startsWith("https") ? "https" : "http"
@@ -37,6 +44,30 @@ export default class WebsocketRoom extends Component {
     };
   }
 
+  enableControl = () => {
+    this.setState({ controlKey: nextKey++ });
+  };
+
+  disableControl = () => {
+    this.setState({ controlKey: disabled });
+  };
+
+  disableStream = () => {
+    this.setState({ streamKey: disabled });
+  };
+
+  enableStream = () => {
+    this.setState({ streamKey: nextKey++ });
+  };
+
+  isControlEnabled = () => {
+    return this.state.controlKey !== disabled;
+  };
+
+  isStreamEnabled = () => {
+    return this.state.streamKey !== disabled;
+  };
+
   render() {
     return (
       <div className="room">
@@ -49,16 +80,44 @@ export default class WebsocketRoom extends Component {
           this.state.averageBitrate
         ).toFixed(1)} kb/s`}</div>
         <Clock />
-        {this.state.authenticated && (
-          <div
-            style={this._getDesktopSize()}
-            className="desktop"
+        <div className="room-controls">
+          <button
+            disabled={!this.isStreamEnabled()}
+            onClick={this.disableStream}
           >
-            <StreamingMediaSourceVideo
-              roomClient={this.roomClient}
-              playbackState={info => this.setState(info)}
-            />
-            <ControlOverlay roomClient={this.roomClient} />
+            Stop Video
+          </button>
+          <button onClick={this.enableStream}>
+            {this.isStreamEnabled() ? "Reset Video" : "Start Video"}
+          </button>
+          <button
+            disabled={this.isControlEnabled()}
+            onClick={this.enableControl}
+          >
+            Grab Remote
+          </button>
+          <button
+            disabled={!this.isControlEnabled()}
+            onClick={this.disableControl}
+          >
+            Drop Remote
+          </button>
+        </div>
+        {this.state.authenticated && (
+          <div style={this._getDesktopSize()} className="desktop">
+            {this.isStreamEnabled() && (
+              <StreamingMediaSourceVideo
+                key={this.state.streamKey}
+                roomClient={this.roomClient}
+                playbackState={info => this.setState(info)}
+              />
+            )}
+            {this.isControlEnabled() && (
+              <ControlOverlay
+                key={this.state.controlKey}
+                roomClient={this.roomClient}
+              />
+            )}
           </div>
         )}
       </div>
