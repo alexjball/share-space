@@ -4,9 +4,6 @@ import RoomClient from "./RoomClient";
 import ControlOverlay from "./ControlOverlay";
 import StreamingMediaSourceVideo from "./StreamingMediaSourceVideo";
 
-// Must match the video stream from the room server, as encoded by FFmpeg.
-const mimeType = 'video/webm; codecs="vp9,vorbis"';
-
 /**
  * The main interface to spaces, using a websocket.
  *

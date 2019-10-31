@@ -1,5 +1,6 @@
 const { StreamingMediaServer } = require("./StreamingMediaServer");
 const RoomCodeAuth = require("./RoomCodeAuth");
+const ControlServer = require("./ControlServer");
 const express = require("express");
 const http = require("http");
 const baseDir = require("path").dirname(require.resolve("./package.json"));
@@ -13,7 +14,8 @@ const frontendPort = process.env.PORT || 3001,
     streamingPath: "/stream",
     mediaSinkPath: `${baseDir}/build/server/share-space-media-sink.sock`,
     infoSinkPath: `${baseDir}/build/server/share-space-info-sink.sock`
-  });
+  }),
+  controlServer = new ControlServer("/control");
 
 //// HTTP
 
@@ -37,21 +39,24 @@ frontend.on("upgrade", (request, socket, head) => {
       socket.destroy();
       return;
     }
-    
+
     console.log("upgrade authenticated", user);
 
     if (streamingMediaServer.shouldHandle(request)) {
       streamingMediaServer.handleUpgrade(request, socket, head);
+    } else if (controlServer.shouldHandle(request)) {
+      controlServer.handleUpgrade(request, socket, head);
     } else {
       console.log("Rejected upgrade request");
       socket.destroy();
     }
-  })
+  });
 });
 
 //// Listen
 
 streamingMediaServer.start();
+controlServer.start();
 frontend.listen(frontendPort, () => {
   console.log(`Find the server at: http://localhost:${frontendPort}/`); // eslint-disable-line no-console
 });

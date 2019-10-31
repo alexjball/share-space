@@ -48,17 +48,26 @@ _kill() {
   done
 }
 
+RUN_TIME=$(date -Iseconds)
+LOG_DIR=$PROJECT_ROOT/build/stack/logs-$RUN_TIME
 log_cmd() {
-  $PROJECT_ROOT/run $1 &> $PROJECT_ROOT/build/stack/$1-$(date -Iseconds).log
+  mkdir -p $LOG_DIR
+  ln -fs $LOG_DIR $PROJECT_ROOT/build/stack/logs-latest
+  $PROJECT_ROOT/run $@ &> $LOG_DIR/$1.log
 }
 
 run_cmd() {
-  $PROJECT_ROOT/run $1 || quit "Error running $1"
+  $PROJECT_ROOT/run $@ || quit "Error running $1"
 }
 
 require_installed() {
   [ -a "$STACK_INSTALLED" ] || \
     quit "No stack installed - no file at $STACK_INSTALLED"
+}
+
+require_built() {
+  [ -a "$STACK_BUILT" ] || \
+    quit "No stack built - no file at $STACK_INSTALLED"
 }
 
 ## Stack control
@@ -102,7 +111,7 @@ stack-build() {
 }
 
 stack-up() {
-  require_installed
+  require_built
   log_cmd run-Xvfb &
   log_cmd run-x11vnc &
   log_cmd run-frontend &
@@ -112,6 +121,14 @@ stack-up() {
   sleep 5
 
   log_cmd run-screencap-stream &
+}
+
+stack-vnc-up() {
+  require_built
+  log_cmd run-Xvfb &
+  log_cmd run-x11vnc fb &
+  log_cmd run-frontend &
+  log_cmd run-noVNC-proxy &
 }
 
 stack-down() {
@@ -246,10 +263,15 @@ run-Xvfb() {
 }
 
 run-x11vnc() {
+  local FB="-nofb"
+  if [ "$1" == "fb" ]; then
+    FB=""
+  fi
+
   x11vnc \
     -auth $XAUTHORITY \
     -display :$XDISPLAY \
-    -nofb \
+    $FB \
     -nevershared \
     -loop \
     -forever 
@@ -301,11 +323,11 @@ run-screencap-stream() {
       $MEDIA_URL
 }
 
+### Command Line Interface
+
 help() {
   echo "Usage: $prog_name { $(join_by " | " ${CMDS[*]}) } [args ...]"
 }
-
-### Command Line Interface
 
 join_by() {
   local d=$1; 
@@ -318,6 +340,7 @@ join_by() {
 CMDS=(stack-install \
       stack-build \
       stack-up \
+      stack-vnc-up \
       stack-down \
       stack-status \
       install-node \

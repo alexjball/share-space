@@ -33,7 +33,7 @@ export default class RoomClient {
 
   getControlUrl() {
     return "ws://share-space-dev:6080/";
-    // return new WebSocket(`${this.protocol}://${this.roomServer}/control`);
+    // return `${this.protocol.ws}://${this.roomServer}/control`;
   }
 
   logIn(roomCode) {

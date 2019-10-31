@@ -198,10 +198,10 @@ export default class StreamingMediaSourceVideo extends Component {
     }
 
     return (
-      <div>
+      <>
         {videoErrorLog}
         <video autoPlay={true} ref={this.videoRef} className="video" />
-      </div>
+      </>
     );
   }
 }
