@@ -6,8 +6,9 @@
     "test:dev": "jest --watch",
     "test": "jest",
     "start": "concurrently \"npm run server\" \"npm run client\"",
+    "deployLocal": "concurrently \"npm run server\" \"npm run client -- deployLocal\"",
     "server": "nodemon server.js",
-    "client": "node start-client.js"
+    "client": "bash start-client"
   },
   "repository": {
     "type": "git",

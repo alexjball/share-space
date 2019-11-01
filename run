@@ -253,9 +253,15 @@ build-ffmpeg() {
 ## Run
 
 run-frontend() {
-  REACT_APP_DESKTOP_WIDTH=$SCREEN_WIDTH \
-  REACT_APP_DESKTOP_HEIGHT=$SCREEN_HEIGHT \
-    npm start
+  export REACT_APP_DESKTOP_WIDTH=$SCREEN_WIDTH
+  export REACT_APP_DESKTOP_HEIGHT=$SCREEN_HEIGHT 
+
+  echo $SHARE_SPACE_ENV
+  if [ "$SHARE_SPACE_ENV" == "dev" ]; then
+      npm start
+  else
+      npm run deployLocal
+  fi
 }
 
 run-Xvfb() {
