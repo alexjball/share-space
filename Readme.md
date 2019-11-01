@@ -17,12 +17,9 @@ Features:
 
 # TODO
 - Add mouse/keyboard control via noVNC
-- Add /control endpoint: clients try to connect, and the server authenticates it. If the requester is allowed, the connection is accepted and VNC control works. This endpoint should not be left unprotected, since it gives the requester control of the desktop.
 - Research discord bot: accept requests for new rooms, start and report status, set up discord auth, command for modifying access list.
 - Add timing information to webm_streaming_chunk
 - refactor webm_streaming_chunk to webm_media_source and attempt to merge upstream
-- Add generic auth flow with session cookies
-- Implement passcode (manually distributed) auth
 - Implement third-party (chatbot automated) auth
 - Set up CD to Vagrant hub for the host project
 - Set up CI for the environment: test that stack works and that video streams
@@ -30,3 +27,4 @@ Features:
 - Fix Firefox compatibility
 - Optimize mobile layout
 - Create a new non-admin user to run the GUI
+- Reaserch using video.js for player: Can it be integrated with our websocket transport?
