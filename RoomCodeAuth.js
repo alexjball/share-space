@@ -9,7 +9,7 @@ let userId = 0;
 
 module.exports = class RoomCodeAuth {
   constructor() {
-    this.roomCode = process.env.ROOM_CODE || "share-space";
+    this.roomCode = process.env.SHARE_SPACE_ROOM_CODE || "share-space";
     this.passport = new Passport();
     this._configure();
   }
