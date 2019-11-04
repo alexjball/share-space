@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.com/alexjball/share-space.svg?branch=master)](https://travis-ci.com/alexjball/share-space)
 
-[Demo video](alexjball.github.io/share-space/demo.html)
+[Demo video](https://alexjball.github.io/share-space/demo.html)
 
 To run a Share Space instance, see [Share Space Host](https://github.com/alexjball/share-space-host)
 
