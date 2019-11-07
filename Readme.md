@@ -2,6 +2,8 @@
 
 [Demo video](https://alexjball.github.io/share-space/demo.html)
 
+[Background and design decisions](https://alexjball.com/video-streaming/share-space/)
+
 To run a Share Space instance, see [Share Space Host](https://github.com/alexjball/share-space-host)
 
 # Share Space
