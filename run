@@ -262,6 +262,7 @@ build-site-ci() {
   (cd client && \
       npm run build && \
       cd .. && \
+      rm -rf project-site/app && \
       cp -r client/build project-site/app && \
       cp Readme.md project-site) || \
     quit "Couldn't build project site"
