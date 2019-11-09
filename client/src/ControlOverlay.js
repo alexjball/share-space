@@ -14,6 +14,7 @@ export default class ControlOverlay extends Component {
       this.rfbTarget.current,
       this.props.roomClient.getControlUrl()
     );
+    this.rfb.scaleViewport = true;
     this.rfb.showDotCursor = true;
     this.rfbListeners = {
       connect: () => this.setState({ connected: true }),

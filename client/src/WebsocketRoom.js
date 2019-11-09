@@ -39,8 +39,8 @@ export default class WebsocketRoom extends Component {
 
   _getDesktopSize() {
     return {
-      width: Number(process.env.REACT_APP_DESKTOP_WIDTH) || 1280,
-      height: Number(process.env.REACT_APP_DESKTOP_HEIGHT) || 720
+      maxWidth: Number(process.env.REACT_APP_DESKTOP_WIDTH) || 1280,
+      maxHeight: Number(process.env.REACT_APP_DESKTOP_HEIGHT) || 720
     };
   }
 

@@ -4,7 +4,6 @@
 }
 
 .control-panel {
-  padding: 10px;
   background-color: tomato;
 }
 
@@ -13,6 +12,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .control-handle {
@@ -26,5 +26,5 @@
 }
 
 .item {
-  margin-right: 10px;
+  margin: 10px;
 }
