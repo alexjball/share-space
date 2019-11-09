@@ -1,7 +1,0 @@
-#!/bin/bash
-
-CMD=${1:-"start"}
-
-echo $CMD
-cd client
-npm run $CMD

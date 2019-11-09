@@ -1,5 +1,2 @@
-/node_modules
-.vscode
-.vagrant
-.Trash-1000
-/site/
+/app/
+/Readme.md

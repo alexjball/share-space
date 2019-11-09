@@ -1,6 +1,0 @@
-[submodule "ffmpeg"]
-	path = ffmpeg
-	url = https://github.com/alexjball/FFmpeg.git
-[submodule "noVNC"]
-	path = noVNC
-	url = https://github.com/alexjball/noVNC.git
