@@ -250,6 +250,23 @@ build-ffmpeg() {
 		make install
 }
 
+install-ci() {
+  build-frontend
+}
+
+test-ci() {
+  npm test
+}
+
+build-site-ci() {
+  (cd client && \
+      npm run build && \
+      cd .. && \
+      cp -r client/build project-site/app && \
+      cp Readme.md project-site) || \
+    quit "Couldn't build project site"
+}
+
 ## Run
 
 run-frontend() {
@@ -367,6 +384,9 @@ CMDS=(stack-install \
       build-frontend \
       run-frontend \
       run-noVNC-proxy \
+      install-ci \
+      test-ci \
+      build-site-ci \
       help)
 
 prog_name=$0
