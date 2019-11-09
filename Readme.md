@@ -1,6 +1,8 @@
 [![Build Status](https://travis-ci.com/alexjball/share-space.svg?branch=master)](https://travis-ci.com/alexjball/share-space)
 
-[Demo video](https://alexjball.github.io/share-space/demo.html)
+[Client app](https://alexjball.github.io/share-space/app)
+
+[Demo video](https://alexjball.github.io/share-space/demo)
 
 [Background and design decisions](https://alexjball.com/video-streaming/share-space/)
 
