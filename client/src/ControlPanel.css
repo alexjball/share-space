@@ -4,7 +4,8 @@
 }
 
 .control-panel {
-  background-color: tomato;
+  background: rgb(255, 0, 0);
+  background: var(--bg-gradient);
 }
 
 .center {
