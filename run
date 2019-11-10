@@ -161,12 +161,16 @@ install-node() {
 }
 
 install-gui() {
+  # Install Cinnamon desktop environment on Xvfb, a headless X server.
+  # Install x11vnc for remote control
+  # Install firefox for browsing and libavcodec-extra for video playback.
   sudo apt-get -y install \
       xvfb \
       x11vnc \
       cinnamon-core \
       xinit \
       dbus-x11 \
+      libavcodec-extra \
       firefox || \
     quit "Couldn't install GUI"
   
