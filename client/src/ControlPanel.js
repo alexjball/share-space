@@ -10,7 +10,7 @@ export default class ControlPanel extends Component {
 
     this.state = {
       open: !!props.initiallyOpen,
-      roomServer: process.env.REACT_APP_DEFAULT_ROOM_SERVER || "localhost:3001",
+      roomServer: process.env.REACT_APP_DEFAULT_ROOM_SERVER || (window.location.hostname + ":3001"),
       roomCode: process.env.REACT_APP_DEFAULT_ROOM_CODE || "share-space"
     };
     this.clickId = 0;
