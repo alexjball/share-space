@@ -66,7 +66,7 @@ module.exports = class RoomCodeAuth {
       "/login",
       cors({ origin: true, credentials: true }),
       this.passport.authenticate("local", { session: true }),
-      (req, res, next) => {
+      (req, res) => {
         console.log(`Authorized user: ${JSON.stringify(req.user)}`);
         res.send(req.user);
       }

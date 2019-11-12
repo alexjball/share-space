@@ -51,7 +51,11 @@ class StreamingMediaServer extends EventEmitter {
         console.log("closed streaming connection");
         this.removeClient(ws);
       });
+      ws.on("error", err => console.log("streaming connection err", err));
     });
+    clientServer.on("error", err =>
+      console.log("media streaming server err", err)
+    );
     clientServer.on("close", () => this.closeServer("client"));
 
     return clientServer;
@@ -66,11 +70,9 @@ class StreamingMediaServer extends EventEmitter {
         this.closeSinkConnection();
       });
       socket.on("data", data => this.sinkConnection.sink.addMedia(data));
-      socket.on("error", err => console.log(`media sink error ${err}`));
+      socket.on("error", err => console.log("media sink err", err));
     });
-    mediaServer.on("error", err =>
-      console.log(`media sink server error ${err}`)
-    );
+    mediaServer.on("error", err => console.log("media sink server err", err));
     mediaServer.on("close", () => this.closeServer("media"));
     mediaServer.maxConnections = 1;
 
@@ -91,7 +93,7 @@ class StreamingMediaServer extends EventEmitter {
         console.log(`info sink connection error ${err}`)
       );
     });
-    infoServer.on("error", err => console.log(`info sink server error ${err}`));
+    infoServer.on("error", err => console.log("info sink server err", err));
     infoServer.on("close", () => this.closeServer("info"));
     infoServer.maxConnections = 1;
 

@@ -1,4 +1,3 @@
-const EventEmitter = require("events");
 const net = require("net");
 const WebSocket = require("ws");
 
@@ -28,15 +27,16 @@ module.exports = class ControlServer {
         this.client.close(goingAway, "Breaking for new connection");
       }
       client.on("close", () => console.log("control connection closed"));
-      client.on("end", () => console.log("control connection ended"));
-      client.on("error", error =>
-        console.log("control connection errored", error)
-      );
+      client.on("error", err => console.log("control connection err", err));
+
       const clientStream = WebSocket.createWebSocketStream(client),
         vncStream = net.createConnection(this.vncPort, this.vncHost);
+      clientStream.on("error", err => console.log("clientStream err", err));
+      vncStream.on("error", err => console.log("vncStream err", err));
       clientStream.pipe(vncStream);
       vncStream.pipe(clientStream);
-      console.log("Connected");
+
+      console.log("control connection connected");
       this.client = client;
     });
     proxy.on("close", () => console.log("ControlServer proxy closed"));
