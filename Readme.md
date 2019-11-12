@@ -36,3 +36,9 @@ Features:
 - Optimize mobile layout
 - Create a new non-admin user to run the GUI
 - Reaserch using video.js for player: Can it be integrated with our websocket transport?
+
+# Travis Deployment to GH
+Shared Space uses [Travis](travis-ci.com) for continuous integration.
+When the build succeeds, Travis will deploy to Github pages if the `GITHUB_TOKEN` variable is set in the project's settings.
+See [here](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line) for generating a Github token,
+and see [here](https://docs.travis-ci.com/user/deployment/pages/) for adding the token to Travis.
