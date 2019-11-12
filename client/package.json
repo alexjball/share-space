@@ -2,6 +2,7 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@novnc/novnc": "file:../noVNC",
     "react": "^16.9.0",

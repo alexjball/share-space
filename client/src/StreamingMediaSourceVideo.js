@@ -90,10 +90,10 @@ export default class StreamingMediaSourceVideo extends Component {
     const now = performance.now();
     this.perfInfo = this.perfInfo.filter(i => now - i.time < 5000);
     this.perfInfo.push({ time: now, length: data.byteLength });
+    const duration = 1e-3 * (now - (this.perfInfo.length ? this.perfInfo[0].time : 0));
     const averageBitrate =
       (1e-3 * this.perfInfo.map(i => i.length).reduce((a, b) => a + b, 0)) /
-      this.perfInfo.length;
-
+      duration;
     const bufferedRanges = [];
     let i;
     for (i = 0; i < video.buffered.length; i++) {

@@ -161,12 +161,16 @@ install-node() {
 }
 
 install-gui() {
+  # Install Cinnamon desktop environment on Xvfb, a headless X server.
+  # Install x11vnc for remote control
+  # Install firefox for browsing and libavcodec-extra for video playback.
   sudo apt-get -y install \
       xvfb \
       x11vnc \
       cinnamon-core \
       xinit \
       dbus-x11 \
+      libavcodec-extra \
       firefox || \
     quit "Couldn't install GUI"
   
@@ -248,6 +252,24 @@ build-ffmpeg() {
 	configure-ffmpeg && \
 		make -j $(nproc) && \
 		make install
+}
+
+install-ci() {
+  build-frontend
+}
+
+test-ci() {
+  npm test
+}
+
+build-site-ci() {
+  (cd client && \
+      npm run build && \
+      cd .. && \
+      rm -rf project-site/app && \
+      cp -r client/build project-site/app && \
+      cp Readme.md project-site) || \
+    quit "Couldn't build project site"
 }
 
 ## Run
@@ -367,6 +389,9 @@ CMDS=(stack-install \
       build-frontend \
       run-frontend \
       run-noVNC-proxy \
+      install-ci \
+      test-ci \
+      build-site-ci \
       help)
 
 prog_name=$0
