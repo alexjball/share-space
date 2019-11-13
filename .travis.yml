@@ -7,8 +7,10 @@ script: ./run test-ci && ./run build-site-ci
 deploy:
   provider: pages
   skip_cleanup: true
-  github_token: ${GITHUB_TOKEN}  # See https://docs.travis-ci.com/user/deployment/pages/
+  github_token: $GITHUB_TOKEN  # See https://docs.travis-ci.com/user/deployment/pages/
   keep_history: true
   local_dir: project-site
   on:
     branch: master
+    # Skip deployment if credentials are unset
+    condition: -n $GITHUB_TOKEN
