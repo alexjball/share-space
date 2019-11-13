@@ -1,7 +1,7 @@
 language: node_js
 node_js: lts/*
 
-install: ./run install-ci
+install: exit 1
 script: ./run test-ci && ./run build-site-ci
 
 deploy:
